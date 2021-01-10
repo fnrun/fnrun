@@ -24,6 +24,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sync"
 
 	"github.com/fnrun/fnrun/pkg/fn"
 	"github.com/mitchellh/mapstructure"
@@ -52,6 +53,31 @@ type simple struct {
 	errorChannel  chan error
 	outputChannel chan string
 	stdin         io.WriteCloser
+	locker        sync.RWMutex
+}
+
+func (s *simple) setAlive(alive bool) error {
+	s.locker.Lock()
+	defer s.locker.Unlock()
+
+	if s.alive == alive {
+		return nil
+	}
+
+	s.alive = alive
+
+	if !alive {
+		return s.cmd.Process.Kill()
+	}
+
+	return nil
+}
+
+func (s *simple) getAlive() bool {
+	s.locker.RLock()
+	defer s.locker.RUnlock()
+
+	return s.alive
 }
 
 // ErrUnconfiguredCmd indicates that the CLI Fn has not been configured with
@@ -59,7 +85,7 @@ type simple struct {
 var ErrUnconfiguredCmd = fmt.Errorf("cli: unconfigured command")
 
 func (s *simple) start() error {
-	if s.alive {
+	if s.getAlive() {
 		return nil
 	}
 	if s.baseCmd == nil {
@@ -90,7 +116,7 @@ func (s *simple) start() error {
 
 	s.cmd = cmd
 	s.stdin = stdin
-	s.alive = true
+	s.setAlive(true)
 
 	go func() {
 		scanner := bufio.NewScanner(stderr)
@@ -117,7 +143,7 @@ func (s *simple) start() error {
 
 	go func() {
 		err := cmd.Wait()
-		s.alive = false
+		s.setAlive(false)
 		if err != nil {
 			s.errorChannel <- err
 		}
@@ -127,11 +153,7 @@ func (s *simple) start() error {
 }
 
 func (s *simple) kill() error {
-	if s.alive {
-		return s.cmd.Process.Kill()
-	}
-
-	return nil
+	return s.setAlive(false)
 }
 
 func (s *simple) Invoke(ctx context.Context, input interface{}) (interface{}, error) {
