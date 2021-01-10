@@ -22,12 +22,28 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 
 	"github.com/fnrun/fnrun/pkg/fn"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/tessellator/executil"
 )
+
+func createBaseCmd(commandStr string, env ...string) (*exec.Cmd, error) {
+	cmd, err := executil.ParseCmd(commandStr)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Env = os.Environ()
+	for _, envVar := range env {
+		cmd.Env = append(cmd.Env, envVar)
+	}
+
+	return cmd, nil
+}
 
 type simple struct {
 	alive         bool
@@ -38,9 +54,16 @@ type simple struct {
 	stdin         io.WriteCloser
 }
 
+// ErrUnconfiguredCmd indicates that the CLI Fn has not been configured with
+// a command to run an external process.
+var ErrUnconfiguredCmd = fmt.Errorf("cli: unconfigured command")
+
 func (s *simple) start() error {
 	if s.alive {
 		return nil
+	}
+	if s.baseCmd == nil {
+		return ErrUnconfiguredCmd
 	}
 
 	cmd := executil.CloneCmd(s.baseCmd)
@@ -134,6 +157,50 @@ func (s *simple) Invoke(ctx context.Context, input interface{}) (interface{}, er
 			return nil, errors.Wrap(err, kerr.Error())
 		}
 		return nil, err
+	}
+}
+
+func (s *simple) RequiresConfig() bool {
+	return true
+}
+
+func (s *simple) ConfigureString(commandStr string) error {
+	cmd, err := createBaseCmd(commandStr)
+	if err != nil {
+		return err
+	}
+
+	s.baseCmd = cmd
+	return nil
+}
+
+func (s *simple) ConfigureMap(configMap map[string]interface{}) error {
+	cfg := struct {
+		Command string   `mapstructure:"command"`
+		Env     []string `mapstructure:"env"`
+	}{}
+	err := mapstructure.Decode(configMap, &cfg)
+	if err != nil {
+		return err
+	}
+
+	baseCmd, err := createBaseCmd(cfg.Command, cfg.Env...)
+	if err != nil {
+		return err
+	}
+
+	s.baseCmd = baseCmd
+	return nil
+}
+
+// New creates an unconfigured Fn. The result of this function must be
+// configured with a command string, otherwise ErrUnconfiguredCmd will be
+// returned from calls to Invoke.
+func New() fn.Fn {
+	return &simple{
+		alive:         false,
+		errorChannel:  make(chan error, 1),
+		outputChannel: make(chan string, 1),
 	}
 }
 

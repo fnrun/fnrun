@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/fnrun/fnrun/pkg/fn"
+	"github.com/fnrun/fnrun/pkg/run/config"
 	"github.com/fnrun/fnrun/pkg/run/fn/cli"
 	"github.com/tessellator/executil"
 )
@@ -107,7 +108,46 @@ func TestFn_Invoke_hangingSubprocess(t *testing.T) {
 	if err != context.DeadlineExceeded {
 		t.Errorf("expected Invoke to return DeadlineExceeded but instead returned %+v", err)
 	}
+}
 
+func TestNew_withoutConfigReturnsUnconfiguredError(t *testing.T) {
+	f := cli.New()
+	_, err := f.Invoke(context.Background(), "some input")
+	if err != cli.ErrUnconfiguredCmd {
+		t.Fatalf("expected Invoke to return ErrUnconfiguredCmd but returned: %+v", err)
+	}
+}
+
+func TestNew_withConfiguration(t *testing.T) {
+	configMap := map[string]interface{}{
+		"command": fmt.Sprintf("%s -test.run=%s", os.Args[0], "Test_HelperSubprocess"),
+		"env":     []string{"GO_RUNNING_SUBPROCESS=1"},
+	}
+	f := cli.New()
+	err := config.Configure(f, configMap)
+	if err != nil {
+		t.Fatalf("Configure returned err: %+v", err)
+	}
+
+	output, err := f.Invoke(context.Background(), "some input")
+	if err != nil {
+		t.Fatalf("Invoke returned err: %+v", err)
+	}
+
+	want := "from subprocess: some input"
+	got := output.(string)
+
+	if got != want {
+		t.Errorf("Unexpected output from Invoke: want %q, got %q", want, got)
+	}
+}
+
+func TestNew_withNilConfig(t *testing.T) {
+	f := cli.New()
+	err := config.Configure(f, nil)
+	if err == nil {
+		t.Errorf("expected Configure to return an error but was nil")
+	}
 }
 
 // -----------------------------------------------------------------------------
