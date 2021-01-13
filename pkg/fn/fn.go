@@ -9,3 +9,17 @@ import "context"
 type Fn interface {
 	Invoke(context.Context, interface{}) (interface{}, error)
 }
+
+type InvokeFunc func(context.Context, interface{}) (interface{}, error)
+
+type invokeFuncFn struct {
+	f InvokeFunc
+}
+
+func (i *invokeFuncFn) Invoke(ctx context.Context, input interface{}) (interface{}, error) {
+	return i.f(ctx, input)
+}
+
+func NewFnFromInvokeFunc(i InvokeFunc) Fn {
+	return &invokeFuncFn{f: i}
+}
