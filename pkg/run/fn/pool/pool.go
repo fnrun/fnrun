@@ -52,19 +52,25 @@ func (*poolFn) RequiresConfig() bool {
 	return true
 }
 
-func createFnFromString(r run.Registry, fnName string) (fn.Fn, error) {
+func createFn(r run.Registry, fnName string, cfg interface{}) (fn.Fn, error) {
 	factory, hasFn := r.FindFn(fnName)
 	if !hasFn {
 		return nil, fmt.Errorf("fn %s was not registered with r", fnName)
 	}
 	f := factory()
-	return f, config.Configure(f, nil)
+	return f, config.Configure(f, cfg)
 }
 
-func createFnFromTemplate(r run.Registry, config interface{}) (fn.Fn, error) {
-	switch config.(type) {
+func createFnFromTemplate(r run.Registry, cfg interface{}) (fn.Fn, error) {
+	switch cfg.(type) {
 	case string:
-		return createFnFromString(r, config.(string))
+		return createFn(r, cfg.(string), nil)
+	case map[string]interface{}:
+		fnName, c, err := config.GetSinglePair(cfg.(map[string]interface{}))
+		if err != nil {
+			return nil, err
+		}
+		return createFn(r, fnName, c)
 	default:
 		return nil, errors.New("unsupported config type")
 	}
