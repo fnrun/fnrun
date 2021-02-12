@@ -61,5 +61,7 @@ func main() {
 		panic(err)
 	}
 
-	runner.Run(context.Background())
+	if err = runner.Run(context.Background()); err != nil {
+		panic(err)
+	}
 }
