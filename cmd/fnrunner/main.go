@@ -17,6 +17,7 @@ import (
 	"github.com/fnrun/fnrun/pkg/run/middleware/timeout"
 	"github.com/fnrun/fnrun/pkg/run/runner"
 	"github.com/fnrun/fnrun/pkg/run/source/http"
+	"github.com/fnrun/fnrun/pkg/run/source/kafka"
 	sourceloader "github.com/fnrun/fnrun/pkg/run/source/loader"
 	"gopkg.in/yaml.v3"
 )
@@ -42,6 +43,7 @@ func main() {
 	registry.RegisterMiddlewareWithRegistry("middleware", pipeline.NewWithRegistry)
 
 	registry.RegisterSource("fnrun.source/http", http.New)
+	registry.RegisterSource("fnrun.source/kafka", kafka.New)
 	registry.RegisterSourceWithRegistry("source", sourceloader.New)
 
 	configBytes, err := ioutil.ReadFile(filePath)
