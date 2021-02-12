@@ -85,7 +85,7 @@ func (k *kafkaSource) Serve(ctx context.Context, f fn.Fn) error {
 	return client.Close()
 }
 
-func (k *kafkaSource) RequiresConfigure() bool {
+func (k *kafkaSource) RequiresConfig() bool {
 	return true
 }
 

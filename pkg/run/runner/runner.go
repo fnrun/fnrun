@@ -75,7 +75,7 @@ func (r *Runner) ConfigureMap(configMap map[string]interface{}) error {
 	return nil
 }
 
-func (r *Runner) RequiresConfigure() bool {
+func (r *Runner) RequiresConfig() bool {
 	return true
 }
 
