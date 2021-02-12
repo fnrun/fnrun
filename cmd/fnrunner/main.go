@@ -19,6 +19,7 @@ import (
 	"github.com/fnrun/fnrun/pkg/run/source/http"
 	"github.com/fnrun/fnrun/pkg/run/source/kafka"
 	sourceloader "github.com/fnrun/fnrun/pkg/run/source/loader"
+	"github.com/fnrun/fnrun/pkg/run/source/sqs"
 	"gopkg.in/yaml.v3"
 )
 
@@ -44,6 +45,7 @@ func main() {
 
 	registry.RegisterSource("fnrun.source/http", http.New)
 	registry.RegisterSource("fnrun.source/kafka", kafka.New)
+	registry.RegisterSource("fnrun.source/sqs", sqs.New)
 	registry.RegisterSourceWithRegistry("source", sourceloader.New)
 
 	configBytes, err := ioutil.ReadFile(filePath)
