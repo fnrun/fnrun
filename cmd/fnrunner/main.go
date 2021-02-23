@@ -20,6 +20,7 @@ import (
 	"github.com/fnrun/fnrun/pkg/run/runner"
 	"github.com/fnrun/fnrun/pkg/run/source/http"
 	"github.com/fnrun/fnrun/pkg/run/source/kafka"
+	"github.com/fnrun/fnrun/pkg/run/source/lambda"
 	sourceloader "github.com/fnrun/fnrun/pkg/run/source/loader"
 	"github.com/fnrun/fnrun/pkg/run/source/sqs"
 	"gopkg.in/yaml.v3"
@@ -49,6 +50,7 @@ func main() {
 
 	registry.RegisterSource("fnrun.source/http", http.New)
 	registry.RegisterSource("fnrun.source/kafka", kafka.New)
+	registry.RegisterSource("fnrun.source/lambda", lambda.New)
 	registry.RegisterSource("fnrun.source/sqs", sqs.New)
 	registry.RegisterSourceWithRegistry("source", sourceloader.New)
 
