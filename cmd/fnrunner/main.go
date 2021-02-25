@@ -9,6 +9,7 @@ import (
 	"github.com/fnrun/fnrun/pkg/run"
 	"github.com/fnrun/fnrun/pkg/run/config"
 	"github.com/fnrun/fnrun/pkg/run/fn/cli"
+	httpfn "github.com/fnrun/fnrun/pkg/run/fn/http"
 	"github.com/fnrun/fnrun/pkg/run/fn/identity"
 	fnloader "github.com/fnrun/fnrun/pkg/run/fn/loader"
 	"github.com/fnrun/fnrun/pkg/run/fn/pool"
@@ -39,6 +40,7 @@ func main() {
 	registry := run.NewRegistry()
 
 	registry.RegisterFn("fnrun.fn/cli", cli.New)
+	registry.RegisterFn("fnrun.fn/http", httpfn.New)
 	registry.RegisterFn("fnrun.fn/identity", identity.New)
 	registry.RegisterFnWithRegistry("fnrun.fn/pool", pool.New)
 	registry.RegisterFnWithRegistry("fn", fnloader.New)
