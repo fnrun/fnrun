@@ -16,9 +16,9 @@ type sqsSource struct {
 }
 
 type sqsSourceConfig struct {
-	queueName string `mapstructure:"queue"`
-	timeout   int64  `mapstructure:"timeout,omitempty"`
-	batchSize int64  `mapstructure:"batchSize,omitempty"`
+	QueueName string `mapstructure:"queue"`
+	Timeout   int64  `mapstructure:"timeout,omitempty"`
+	BatchSize int64  `mapstructure:"batchSize,omitempty"`
 }
 
 func (*sqsSource) RequiresConfig() bool {
@@ -26,7 +26,7 @@ func (*sqsSource) RequiresConfig() bool {
 }
 
 func (s *sqsSource) ConfigureString(queueName string) error {
-	s.config.queueName = queueName
+	s.config.QueueName = queueName
 	return nil
 }
 
@@ -42,7 +42,7 @@ func (s *sqsSource) Serve(ctx context.Context, f fn.Fn) error {
 	svc := sqs.New(sess)
 
 	urlResult, err := svc.GetQueueUrl(&sqs.GetQueueUrlInput{
-		QueueName: &s.config.queueName,
+		QueueName: &s.config.QueueName,
 	})
 
 	if err != nil {
@@ -60,8 +60,8 @@ func (s *sqsSource) Serve(ctx context.Context, f fn.Fn) error {
 				aws.String(sqs.QueueAttributeNameAll),
 			},
 			QueueUrl:            queueURL,
-			MaxNumberOfMessages: &s.config.batchSize,
-			VisibilityTimeout:   &s.config.timeout,
+			MaxNumberOfMessages: &s.config.BatchSize,
+			VisibilityTimeout:   &s.config.Timeout,
 		})
 
 		if err != nil {
@@ -97,8 +97,8 @@ func createInput(message *sqs.Message) map[string]interface{} {
 func New() run.Source {
 	return &sqsSource{
 		config: &sqsSourceConfig{
-			timeout:   30,
-			batchSize: 1,
+			Timeout:   30,
+			BatchSize: 1,
 		},
 	}
 }
