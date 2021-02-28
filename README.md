@@ -1,9 +1,9 @@
 # Welcome to fnrun
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/fnrun/fnrun)](https://pkg.go.dev/github.com/fnrun/fnrun)
 [![Go Report Card](https://goreportcard.com/badge/fnrun/fnrun)](https://goreportcard.com/report/fnrun/fnrun)
-[![codecov](https://codecov.io/gh/fnrun/fnrun/branch/master/graph/badge.svg)](https://codecov.io/gh/fnrun/fnrun)
+[![codecov](https://codecov.io/gh/fnrun/fnrun/branch/main/graph/badge.svg)](https://codecov.io/gh/fnrun/fnrun)
 [![Releases](https://img.shields.io/github/v/tag/fnrun/fnrun?include_prereleases&sort=semver)](https://github.com/fnrun/fnrun/releases)
-[![LICENSE](https://img.shields.io/github/license/fnrun/fnrun.svg)](https://github.com/fnrun/fnrun/blob/master/LICENSE)
+[![LICENSE](https://img.shields.io/github/license/fnrun/fnrun.svg)](https://github.com/fnrun/fnrun/blob/main/LICENSE)
 
 ## What is fnrun?
 The fnrun project provides a set of tools for building and running business
