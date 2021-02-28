@@ -3,7 +3,7 @@ module github.com/fnrun/fnrun
 go 1.15
 
 require (
-	github.com/Shopify/sarama v1.27.2
+	github.com/Shopify/sarama v1.28.0
 	github.com/aws/aws-sdk-go v1.37.9
 	github.com/itchyny/astgen-go v0.0.0-20210222032259-bf31276dfbe1 // indirect
 	github.com/itchyny/gojq v0.12.1
