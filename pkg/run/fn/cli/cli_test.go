@@ -45,8 +45,7 @@ func newSubprocessFn(t *testing.T) fn.Fn {
 
 func TestFn_Invoke_subprocessExitsUnsuccessfully(t *testing.T) {
 	f := newSubprocessFn(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
+	ctx := context.Background()
 
 	output, err := f.Invoke(ctx, "exit_error")
 	if err == nil {
