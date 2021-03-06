@@ -47,6 +47,9 @@ func transcode(v interface{}, strategy string) (interface{}, error) {
 
 func (jm *jsonMiddleware) Invoke(ctx context.Context, input interface{}, f fn.Fn) (interface{}, error) {
 	newInput, err := transcode(input, jm.config.Input)
+	if err != nil {
+		return nil, err
+	}
 
 	output, err := f.Invoke(ctx, newInput)
 	if err != nil {
