@@ -85,8 +85,6 @@ func (j *jqMiddleware) ConfigureMap(configMap map[string]interface{}) error {
 }
 
 func (j *jqMiddleware) Invoke(ctx context.Context, input interface{}, f fn.Fn) (interface{}, error) {
-	newInput := input
-
 	newInput, err := apply(ctx, j.input, input)
 	if err != nil {
 		return nil, err
@@ -97,9 +95,7 @@ func (j *jqMiddleware) Invoke(ctx context.Context, input interface{}, f fn.Fn) (
 		return output, err
 	}
 
-	newOutput, err := apply(ctx, j.output, output)
-
-	return newOutput, nil
+	return apply(ctx, j.output, output)
 }
 
 // New returns a middleware that applies jq patterns to inputs and/or outputs.
