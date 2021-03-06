@@ -2,177 +2,179 @@ package json
 
 import (
 	"context"
-	"encoding/json"
 	"reflect"
 	"testing"
 
-	"github.com/fnrun/fnrun/pkg/run/fn/identity"
+	"github.com/fnrun/fnrun/pkg/fn"
 )
 
-func TestJsonMiddleware_Invoke(t *testing.T) {
-	f := identity.New()
-	ctx := context.Background()
-	m := New()
-	input := map[string]interface{}{
-		"a": "b",
-	}
+// createReceiverFn creates and returns an Fn and channel. When invoked,
+// the function will publish its input to the channel, and then return it
+// without error.
+func createReceiverFn() (fn.Fn, chan interface{}) {
+	receiveChan := make(chan interface{}, 10)
 
-	output, err := m.Invoke(ctx, input, f)
-	if err != nil {
-		t.Errorf("Invoke returned err: %#v", err)
-	}
+	f := fn.NewFnFromInvokeFunc(func(ctx context.Context, input interface{}) (interface{}, error) {
+		receiveChan <- input
+		return input, nil
+	})
 
-	want := input
-	got := output
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Invoke output: want %#v, got %#v", want, got)
-	}
+	return f, receiveChan
 }
 
-func TestJsonMiddleware_Invoke_serializeInputOnly(t *testing.T) {
-	f := identity.New()
-	ctx := context.Background()
+func TestInvoke(t *testing.T) {
+	f, _ := createReceiverFn()
+
 	m := &jsonMiddleware{
 		config: &jsonMiddlewareConfig{
-			serializeInput:    true,
-			deserializeOutput: false,
+			Input:  "deserialize",
+			Output: "serialize",
 		},
 	}
-	input := map[string]interface{}{
-		"a": "b",
-	}
 
-	output, err := m.Invoke(ctx, input, f)
+	output, err := m.Invoke(context.Background(), `{"a": "b"}`, f)
 	if err != nil {
-		t.Errorf("Invoke returned err: %#v", err)
+		t.Fatalf("Invoke returned error: %#v", err)
 	}
 
 	want := `{"a":"b"}`
-	got := output
+	got, ok := output.(string)
+	if !ok {
+		t.Fatalf("output was not string but was %T", output)
+	}
 
 	if got != want {
-		t.Errorf("Invoke output: want %q, got %q", want, got)
+		t.Errorf("want %q; got %q", want, got)
 	}
 }
 
-func TestJsonMiddleware_Invoke_deserializeOutputOnly(t *testing.T) {
-	f := &jsonInputWrapperFn{}
-	ctx := context.Background()
-	m := &jsonMiddleware{
-		config: &jsonMiddlewareConfig{
-			serializeInput:    false,
-			deserializeOutput: true,
-		},
-	}
-	input := "some string value"
+func TestInvoke_inputDeserialization(t *testing.T) {
+	f, c := createReceiverFn()
 
-	output, err := m.Invoke(ctx, input, f)
-	if err != nil {
-		t.Errorf("Invoke returned err: %#v", err)
+	m := &jsonMiddleware{
+		config: &jsonMiddlewareConfig{Input: "deserialize"},
+	}
+
+	if _, err := m.Invoke(context.Background(), `{"a": "b"}`, f); err != nil {
+		t.Fatalf("Invoke returned error: %#v", err)
 	}
 
 	want := map[string]interface{}{
-		"input": input,
+		"a": "b",
 	}
-	got := output
+	got := <-c
 
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Invoke output: want %#v, got %#v", want, got)
+		t.Errorf("Invoke did not receive expected input: want %#v, got %#v", want, got)
 	}
 }
 
-func TestJsonMiddleware_ConfigString(t *testing.T) {
-	t.Run("No config", func(t *testing.T) {
-		m := New().(*jsonMiddleware)
+func TestInvoke_inputSerialization(t *testing.T) {
+	f, c := createReceiverFn()
 
-		if m.config.serializeInput != true {
-			t.Error("expected input serialization to be enabled")
-		}
-		if m.config.deserializeOutput != true {
-			t.Error("expected output deserialization to be enabled")
-		}
-	})
-
-	t.Run(`Configure with "input" string`, func(t *testing.T) {
-		m := New().(*jsonMiddleware)
-		if err := m.ConfigureString("input"); err != nil {
-			t.Fatal(err)
-		}
-
-		if m.config.serializeInput != true {
-			t.Error("expected input serialization to be enabled")
-		}
-		if m.config.deserializeOutput != false {
-			t.Error("expected output deserialization to be disabled")
-		}
-	})
-
-	t.Run(`Configure with "output" string`, func(t *testing.T) {
-		m := New().(*jsonMiddleware)
-		if err := m.ConfigureString("output"); err != nil {
-			t.Fatal(err)
-		}
-
-		if m.config.serializeInput != false {
-			t.Error("expected input serialization to be disabled")
-		}
-		if m.config.deserializeOutput != true {
-			t.Error("expected output deserialization to be enabled")
-		}
-	})
-
-	t.Run(`Configure with "both" string`, func(t *testing.T) {
-		m := New().(*jsonMiddleware)
-		if err := m.ConfigureString("both"); err != nil {
-			t.Fatal(err)
-		}
-
-		if m.config.serializeInput != true {
-			t.Error("expected input serialization to be enabled")
-		}
-		if m.config.deserializeOutput != true {
-			t.Error("expected output deserialization to be enabled")
-		}
-	})
-
-	t.Run("Configure with unsupported string", func(t *testing.T) {
-		m := New().(*jsonMiddleware)
-		err := m.ConfigureString("some unsupported value")
-
-		if err == nil {
-			t.Fatal("Expected err to have a value")
-		}
-		got := err.Error()
-		want := `unsupported config value: "some unsupported value"; expected "input", "output", or "both"`
-
-		if got != want {
-			t.Errorf("ConfigureString did not return correct err: want %q, got %q", want, got)
-		}
-
-		if m.config.serializeInput != true {
-			t.Error("expected input serialization to be enabled")
-		}
-		if m.config.deserializeOutput != true {
-			t.Error("expected output deserialization to be enabled")
-		}
-	})
-}
-
-// -----------------------------------------------------------------------------
-// Example fns
-
-type jsonInputWrapperFn struct{}
-
-func (*jsonInputWrapperFn) Invoke(ctx context.Context, input interface{}) (interface{}, error) {
-	output := map[string]interface{}{
-		"input": input,
+	m := &jsonMiddleware{
+		config: &jsonMiddlewareConfig{Input: "serialize"},
 	}
 
-	jsonBytes, err := json.Marshal(output)
+	input := map[string]interface{}{"a": "b"}
+
+	if _, err := m.Invoke(context.Background(), input, f); err != nil {
+		t.Fatalf("Invoke returned error: %#v", err)
+	}
+
+	received := <-c
+
+	want := `{"a":"b"}`
+	got, ok := received.(string)
+	if !ok {
+		t.Fatalf("received value was not string but was %T", received)
+	}
+
+	if got != want {
+		t.Errorf("Invoke did not receive expected input: want %#v, got %#v", want, got)
+	}
+}
+
+func TestInvoke_outputSerialization(t *testing.T) {
+	f, _ := createReceiverFn()
+
+	m := &jsonMiddleware{
+		config: &jsonMiddlewareConfig{Output: "serialize"},
+	}
+
+	input := map[string]interface{}{"a": "b"}
+
+	output, err := m.Invoke(context.Background(), input, f)
 	if err != nil {
-		return nil, err
+		t.Fatalf("Invoke returned error: %#v", err)
 	}
 
-	return string(jsonBytes), nil
+	want := `{"a":"b"}`
+	got, ok := output.(string)
+	if !ok {
+		t.Fatalf("output was not string but was %T", output)
+	}
+
+	if got != want {
+		t.Errorf("want %q; got %q", want, got)
+	}
+}
+
+func TestInvoke_outputDeserialization(t *testing.T) {
+	f, _ := createReceiverFn()
+
+	m := &jsonMiddleware{
+		config: &jsonMiddlewareConfig{Output: "deserialize"},
+	}
+
+	got, err := m.Invoke(context.Background(), `{"a":"b"}`, f)
+	if err != nil {
+		t.Fatalf("Invoke returned error: %#v", err)
+	}
+
+	want := map[string]interface{}{"a": "b"}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Invoke did not return expected output: want %#v, got %#v", want, got)
+	}
+}
+
+func TestNew_defaultValues(t *testing.T) {
+	m := New().(*jsonMiddleware)
+
+	gotInputStrategy := m.config.Input
+	wantInputStrategy := ""
+
+	if gotInputStrategy != wantInputStrategy {
+		t.Errorf("unexpected input strategy, want: %q, got %q", wantInputStrategy, gotInputStrategy)
+	}
+
+	gotOutputStrategy := m.config.Output
+	wantOutputStrategy := ""
+
+	if gotOutputStrategy != wantOutputStrategy {
+		t.Errorf("unexpected output strategy, want: %q, got %q", wantOutputStrategy, gotOutputStrategy)
+	}
+}
+
+func TestConfigureMap(t *testing.T) {
+	m := New().(*jsonMiddleware)
+	m.ConfigureMap(map[string]interface{}{
+		"input":  "serialize",
+		"output": "deserialize",
+	})
+
+	gotInputStrategy := m.config.Input
+	wantInputStrategy := "serialize"
+
+	if gotInputStrategy != wantInputStrategy {
+		t.Errorf("unexpected input strategy, want: %q, got %q", wantInputStrategy, gotInputStrategy)
+	}
+
+	gotOutputStrategy := m.config.Output
+	wantOutputStrategy := "deserialize"
+
+	if gotOutputStrategy != wantOutputStrategy {
+		t.Errorf("unexpected output strategy, want: %q, got %q", wantOutputStrategy, gotOutputStrategy)
+	}
 }

@@ -9,76 +9,60 @@ import (
 
 	"github.com/fnrun/fnrun/pkg/fn"
 	"github.com/fnrun/fnrun/pkg/run"
+	"github.com/mitchellh/mapstructure"
 )
-
-type jsonMiddlewareConfig struct {
-	serializeInput    bool
-	deserializeOutput bool
-}
 
 type jsonMiddleware struct {
 	config *jsonMiddlewareConfig
 }
 
-func (j *jsonMiddleware) Invoke(ctx context.Context, input interface{}, f fn.Fn) (interface{}, error) {
-	newInput := input
+type jsonMiddlewareConfig struct {
+	Input  string `mapstructure:"input,omitempty"`
+	Output string `mapstructure:"output,omitempty"`
+}
 
-	if j.config.serializeInput {
-		jsonBytes, err := json.Marshal(input)
+func transcode(v interface{}, strategy string) (interface{}, error) {
+	newValue := v
+
+	switch strategy {
+	case "serialize":
+		bytes, err := json.Marshal(v)
 		if err != nil {
 			return nil, err
 		}
-		newInput = string(jsonBytes)
+		newValue = string(bytes)
+		break
+
+	case "deserialize":
+		str, ok := v.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected string value but received one of type %T", v)
+		}
+		json.Unmarshal([]byte(str), &newValue)
+		break
 	}
+
+	return newValue, nil
+}
+
+func (jm *jsonMiddleware) Invoke(ctx context.Context, input interface{}, f fn.Fn) (interface{}, error) {
+	newInput, err := transcode(input, jm.config.Input)
 
 	output, err := f.Invoke(ctx, newInput)
 	if err != nil {
-		return output, err
+		return nil, err
 	}
 
-	if j.config.deserializeOutput {
-		var newOutput interface{}
-		err := json.Unmarshal([]byte(fmt.Sprint(output)), &newOutput)
-		if err != nil {
-			return output, err
-		}
-		output = newOutput
-	}
-
-	return output, err
+	return transcode(output, jm.config.Output)
 }
 
-func (j *jsonMiddleware) ConfigureString(config string) error {
-	switch config {
-	case "both":
-		j.config.serializeInput = true
-		j.config.deserializeOutput = true
-		break
-
-	case "input":
-		j.config.serializeInput = true
-		j.config.deserializeOutput = false
-		break
-
-	case "output":
-		j.config.serializeInput = false
-		j.config.deserializeOutput = true
-		break
-
-	default:
-		return fmt.Errorf(`unsupported config value: %q; expected "input", "output", or "both"`, config)
-	}
-
-	return nil
+func (jm *jsonMiddleware) ConfigureMap(configMap map[string]interface{}) error {
+	return mapstructure.Decode(configMap, jm.config)
 }
 
-// New returns a middleware that can serialize its input to JSON, deserialize
-// its output, or both.
+// New returns a json middleware that does not manipulate input or output.
 func New() run.Middleware {
 	return &jsonMiddleware{
-		config: &jsonMiddlewareConfig{
-			serializeInput:    true,
-			deserializeOutput: true,
-		},
+		config: &jsonMiddlewareConfig{},
 	}
 }
