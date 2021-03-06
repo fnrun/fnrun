@@ -56,6 +56,7 @@ type EmptyConfigurer interface {
 // that interface. Configure will return an error if an appropriate
 // implementation of a *Configurer interface is not found and the object
 // requires configuration, as specified by the Required interface.
+//gocyclo:ignore
 func Configure(target interface{}, config interface{}) error {
 	switch config.(type) {
 	case nil:
