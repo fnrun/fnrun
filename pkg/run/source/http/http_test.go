@@ -189,6 +189,53 @@ func TestHandler_defaultHeaders(t *testing.T) {
 	}
 }
 
+func TestHandler_defaultHeadersWithOutputAsBody(t *testing.T) {
+	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
+	if err != nil {
+		t.Fatalf("NewRequest returned error: %#v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	rr := httptest.NewRecorder()
+	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
+		return "fn output", nil
+	})
+
+	config := &httpSourceConfig{
+		Addr: ":8080",
+		DefaultHeaders: map[string]string{
+			"content-type": "application/json",
+		},
+		TreatOutputAsBody: true,
+	}
+
+	handler := http.HandlerFunc(makeHandler(ctx, f, config))
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned non-OK status code: %d", rr.Code)
+	}
+
+	want := "fn output"
+	got := rr.Body.String()
+
+	if got != want {
+		t.Errorf("response output: want %q, got %q", want, got)
+	}
+
+	wantHeaders := map[string][]string{"Content-Type": {"application/json"}}
+	gotHeaders := make(map[string][]string)
+	for k, v := range rr.Result().Header {
+		gotHeaders[k] = v
+	}
+
+	if !reflect.DeepEqual(gotHeaders, wantHeaders) {
+		t.Errorf("headers did not match\nwant: %s\ngot:  %s\n", wantHeaders, gotHeaders)
+	}
+}
+
 func TestHandler_error(t *testing.T) {
 	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
 	if err != nil {

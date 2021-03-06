@@ -4,7 +4,6 @@ package http
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -24,7 +23,6 @@ type httpSourceConfig struct {
 	DefaultHeaders    map[string]string `mapstructure:"outputHeaders,omitempty"`
 	IgnoreOutput      bool              `mapstructure:"ignoreOutput,omitempty"`
 }
-
 type httpSource struct {
 	config *httpSourceConfig
 }
@@ -84,8 +82,9 @@ func makeHandler(ctx context.Context, f fn.Fn, config *httpSourceConfig) func(w 
 		}
 
 		if config.TreatOutputAsBody {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprint(output)))
+			if err := writeResponse(w, map[string]interface{}{"body": output}, config); err != nil {
+				log.Printf("%#v", err)
+			}
 			return
 		}
 
