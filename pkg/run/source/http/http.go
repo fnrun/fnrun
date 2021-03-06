@@ -4,6 +4,7 @@ package http
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -82,7 +83,7 @@ func makeHandler(ctx context.Context, f fn.Fn, config *httpSourceConfig) func(w 
 		}
 
 		if config.TreatOutputAsBody {
-			if err := writeResponse(w, map[string]interface{}{"body": output}, config); err != nil {
+			if err := writeResponse(w, map[string]interface{}{"body": fmt.Sprint(output)}, config); err != nil {
 				log.Printf("%#v", err)
 			}
 			return
@@ -90,7 +91,7 @@ func makeHandler(ctx context.Context, f fn.Fn, config *httpSourceConfig) func(w 
 
 		m, ok := output.(map[string]interface{})
 		if !ok {
-			log.Printf("expected output to be string or map[string]interface{} but was %T", output)
+			log.Printf("expected output to be map[string]interface{} but was %T", output)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

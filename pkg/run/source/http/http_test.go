@@ -236,6 +236,40 @@ func TestHandler_defaultHeadersWithOutputAsBody(t *testing.T) {
 	}
 }
 
+func TestHandler_treatOutputAsBodyWithInteger(t *testing.T) {
+	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
+	if err != nil {
+		t.Fatalf("NewRequest returned error: %#v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	rr := httptest.NewRecorder()
+	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
+		return 1, nil
+	})
+
+	config := &httpSourceConfig{
+		Addr:              ":8080",
+		TreatOutputAsBody: true,
+	}
+
+	handler := http.HandlerFunc(makeHandler(ctx, f, config))
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned non-OK status code: %d", rr.Code)
+	}
+
+	want := "1"
+	got := rr.Body.String()
+
+	if got != want {
+		t.Errorf("response output: want %q, got %q", want, got)
+	}
+}
+
 func TestHandler_error(t *testing.T) {
 	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
 	if err != nil {
