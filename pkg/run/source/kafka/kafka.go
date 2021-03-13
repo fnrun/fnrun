@@ -1,3 +1,6 @@
+// Package kafka provides an fnrun source that receives messages from Kafka.
+// The kafka source will invoke a function with a message and will mark the
+// message as received unless the function returns an error.
 package kafka
 
 import (
@@ -93,6 +96,8 @@ func (k *kafkaSource) ConfigureMap(configMap map[string]interface{}) error {
 	return mapstructure.Decode(configMap, k.config)
 }
 
+// New returns a kafka source with default values. The resulting value must be
+// configured with at least broker and topic information before calling Serve.
 func New() run.Source {
 	return &kafkaSource{
 		config: &kafkaSourceConfig{
