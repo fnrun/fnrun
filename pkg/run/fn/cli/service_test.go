@@ -62,8 +62,15 @@ func TestService_Invoke_subprocessExitsUnsuccessfully(t *testing.T) {
 			t.Errorf("Invoke returned error: %+v", err)
 		}
 
+		if output == nil {
+			t.Fatal("expected non-nil output, but it was nil")
+		}
+
 		want := "from subprocess: second time"
-		got := output.(string)
+		got, ok := output.(string)
+		if !ok {
+			t.Fatalf("expected output to be string but was %T", output)
+		}
 
 		if got != want {
 			t.Errorf("want: %q; got %q", want, got)
@@ -123,7 +130,6 @@ func Test_HelperSubprocess(t *testing.T) {
 		case "sleep":
 			<-time.After(30 * time.Second)
 			fmt.Println("from subprocess")
-			break
 		case "exit_error":
 			fmt.Fprintln(os.Stderr, "from subprocess: exiting with error")
 			os.Exit(1)
