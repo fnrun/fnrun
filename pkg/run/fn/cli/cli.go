@@ -35,9 +35,7 @@ func createBaseCmd(commandStr string, env ...string) (*exec.Cmd, error) {
 	}
 
 	cmd.Env = os.Environ()
-	for _, envVar := range env {
-		cmd.Env = append(cmd.Env, envVar)
-	}
+	cmd.Env = append(cmd.Env, env...)
 
 	return cmd, nil
 }
