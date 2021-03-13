@@ -85,6 +85,9 @@ func TestCliFn_Invoke(t *testing.T) {
 	}
 
 	output, err := f.Invoke(context.Background(), "some input")
+	if err != nil {
+		t.Fatalf("Invoke returned error: %+v", err)
+	}
 
 	want := "from subprocess: some input"
 	got := output.(string)
