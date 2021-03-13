@@ -1,3 +1,5 @@
+// Package runner provides a generic runner that instantiates and creates a
+// processing pipeline containing a source, a list of middleware, and an fn.
 package runner
 
 import (
@@ -11,16 +13,20 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// Runner represents a processing pipeline comprising a source, middleware, and
+// an fn.
 type Runner struct {
 	registry run.Registry
 	source   run.Source
 	fn       fn.Fn
 }
 
+// Run executes the processing pipeline.
 func (r *Runner) Run(ctx context.Context) error {
 	return r.source.Serve(ctx, r.fn)
 }
 
+// ConfigureMap configures the runner with source, middleware, and fn values.
 func (r *Runner) ConfigureMap(configMap map[string]interface{}) error {
 	cfg := struct {
 		Source     interface{} `mapstructure:"source"`
@@ -75,10 +81,13 @@ func (r *Runner) ConfigureMap(configMap map[string]interface{}) error {
 	return nil
 }
 
+// RequiresConfig always returns true. This method exists to interoperate with
+// the config package.
 func (r *Runner) RequiresConfig() bool {
 	return true
 }
 
+// New returns a new instance of a Runner with the specified registry.
 func New(registry run.Registry) *Runner {
 	return &Runner{registry: registry}
 }
