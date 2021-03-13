@@ -1,3 +1,7 @@
+// Package http provides an http fn. The http fn will invoke a remote HTTP
+// endpoint and return the response body as output. The fn considers 2xx and 3xx
+// HTTP status codes on the response as successfully invocations, and other
+// status codes as errors.
 package http
 
 import (
@@ -54,6 +58,9 @@ func (h *httpFn) ConfigureMap(configMap map[string]interface{}) error {
 	return mapstructure.Decode(configMap, h.config)
 }
 
+// New returns an http fn with default values. The result of this must be
+// configured with a target URL. If a target URL is not configured, calls to
+// Invoke will fail.
 func New() fn.Fn {
 	return &httpFn{
 		config: &httpFnConfig{
