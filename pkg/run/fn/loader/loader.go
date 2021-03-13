@@ -55,8 +55,8 @@ func (w *wrappedFn) RequiresConfig() bool {
 	return true
 }
 
-func (wf *wrappedFn) Invoke(ctx context.Context, input interface{}) (interface{}, error) {
-	return wf.fn.Invoke(ctx, input)
+func (w *wrappedFn) Invoke(ctx context.Context, input interface{}) (interface{}, error) {
+	return w.fn.Invoke(ctx, input)
 }
 
 // New creates a configurable Fn that can be configured with a string or map
