@@ -58,6 +58,9 @@ func (h *httpSource) Serve(ctx context.Context, f fn.Fn) error {
 	return <-errorChan
 }
 
+// New returns a new source that with default values. When Serve is called on
+// the resulting object, the source will start a new HTTP server based on its
+// configuration and invoke a function with values received as HTTP requests.
 func New() run.Source {
 	return &httpSource{
 		config: &httpSourceConfig{
