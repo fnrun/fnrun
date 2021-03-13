@@ -50,6 +50,8 @@ func (w *wrappedSource) Serve(ctx context.Context, f fn.Fn) error {
 	return w.source.Serve(ctx, f)
 }
 
+// New returns a source that can instantiate another source based on
+// its configuration data and information held in the registry.
 func New(registry run.Registry) run.Source {
 	return &wrappedSource{registry: registry}
 }
