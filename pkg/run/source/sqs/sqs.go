@@ -1,3 +1,16 @@
+// Package sqs provides an fnrun source that polls for messages from SQS and
+// deletes them unless the fn it serves returns an error.
+//
+// Because the sqs source only deletes a message if it is handled successfully,
+// it is compatible with any redrive policies set on the queue.
+//
+// The sqs source may be configured with either a string or
+// map[string]interface{} value. A string config value should contain the name
+// of the queue the source will poll for messages. A map value should contain
+// a `queue` containing the name of the target queue, a `timeout` containing
+// an integer value representing the number of seconds of the message visibility
+// timeout, and a `batchSize` contain an integer describing the maximum number
+// of messages that can be received with each polling request to the queue.
 package sqs
 
 import (
@@ -94,6 +107,9 @@ func createInput(message *sqs.Message) map[string]interface{} {
 	return input
 }
 
+// New creates a new instance of the sqs source with default values. The
+// resulting object must be configured with a queue name. If a queue name is not
+// configured, Serve will return an error.
 func New() run.Source {
 	return &sqsSource{
 		config: &sqsSourceConfig{
