@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://fnrun.dev/" target="_blank" rel="noopener noreferrer">
+    <img src="https://fnrun.dev/fnrun.png" width="400">
+  </a>
+</p>
+
 # Welcome to fnrun
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/fnrun/fnrun)](https://pkg.go.dev/github.com/fnrun/fnrun)
 [![Go Report Card](https://goreportcard.com/badge/fnrun/fnrun)](https://goreportcard.com/report/fnrun/fnrun)
