@@ -27,6 +27,12 @@ jobs:
       - name: Compress executables
         run: upx ./target/*
 
+      - name: Collect and package licenses
+        run: |
+          go get github.com/google/go-licenses 
+          go-licenses save ./... --save_path="licenses" --force
+          zip -r target/licenses.zip licenses
+
       - name: Publish Release
         uses: softprops/action-gh-release@v1
         with:
