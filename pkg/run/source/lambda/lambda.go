@@ -21,7 +21,7 @@ type lambdaSource struct {
 }
 
 type lambdaSourceConfig struct {
-	JSONDeserializeBody bool `mapstructure:"jsonDeserializeBody,omitempty"`
+	JSONDeserializeEvent bool `mapstructure:"jsonDeserializeEvent,omitempty"`
 }
 
 func (l *lambdaSource) Serve(ctx context.Context, f fn.Fn) error {
@@ -58,10 +58,9 @@ func (l *lambdaSource) Serve(ctx context.Context, f fn.Fn) error {
 
 		var responseData []byte
 
-		switch output.(type) {
+		switch output := output.(type) {
 		case string:
-			responseData = []byte(output.(string))
-			break
+			responseData = []byte(output)
 		case map[string]interface{}:
 			responseData, err = json.Marshal(output)
 			if err != nil {
@@ -94,7 +93,7 @@ func postError(baseURL string, invocationID string, errToSend error) error {
 
 func createInput(resp *http.Response, config *lambdaSourceConfig) (map[string]interface{}, error) {
 	input := make(map[string]interface{})
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	eventBytes, err := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
@@ -116,14 +115,14 @@ func createInput(resp *http.Response, config *lambdaSourceConfig) (map[string]in
 		input["LambdaRuntimeTraceId"] = traceID
 	}
 
-	if config.JSONDeserializeBody {
+	if config.JSONDeserializeEvent {
 		body := make(map[string]interface{})
-		if err := json.Unmarshal(bodyBytes, &body); err != nil {
+		if err := json.Unmarshal(eventBytes, &body); err != nil {
 			return nil, err
 		}
-		input["body"] = body
+		input["event"] = body
 	} else {
-		input["body"] = string(bodyBytes)
+		input["event"] = string(eventBytes)
 	}
 
 	return input, nil
@@ -137,7 +136,7 @@ func (l *lambdaSource) ConfigureMap(configMap map[string]interface{}) error {
 func New() run.Source {
 	return &lambdaSource{
 		config: &lambdaSourceConfig{
-			JSONDeserializeBody: true,
+			JSONDeserializeEvent: true,
 		},
 	}
 }
