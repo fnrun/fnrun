@@ -5,12 +5,15 @@ package json
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/fnrun/fnrun/pkg/fn"
 	"github.com/fnrun/fnrun/pkg/run"
 	"github.com/mitchellh/mapstructure"
 )
+
+var errUnknownStrategy = errors.New("unknown strategy")
 
 type jsonMiddleware struct {
 	config *jsonMiddlewareConfig
@@ -31,7 +34,6 @@ func transcode(v interface{}, strategy string) (interface{}, error) {
 			return nil, err
 		}
 		newValue = string(bytes)
-		break
 
 	case "deserialize":
 		str, ok := v.(string)
@@ -39,7 +41,12 @@ func transcode(v interface{}, strategy string) (interface{}, error) {
 			return nil, fmt.Errorf("expected string value but received one of type %T", v)
 		}
 		json.Unmarshal([]byte(str), &newValue)
+
+	case "": // if not specified, do nothing
 		break
+
+	default:
+		return nil, errUnknownStrategy
 	}
 
 	return newValue, nil
