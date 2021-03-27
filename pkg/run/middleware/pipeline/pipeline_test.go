@@ -2,11 +2,14 @@ package pipeline
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/fnrun/fnrun/pkg/fn"
 	"github.com/fnrun/fnrun/pkg/run"
+	"github.com/fnrun/fnrun/pkg/run/config"
+	"github.com/mitchellh/mapstructure"
 )
 
 func newRegistry() run.Registry {
@@ -14,6 +17,7 @@ func newRegistry() run.Registry {
 	r.RegisterMiddleware("sandwich", NewSandwichMiddleware)
 	r.RegisterMiddleware("upper", NewUpperMiddleware)
 	r.RegisterMiddleware("prepend", NewPrependMiddleware)
+	r.RegisterMiddleware("map", NewMapConfigMiddleware)
 	return r
 }
 
@@ -32,6 +36,139 @@ func TestInvoke_unconfigured(t *testing.T) {
 
 	if got != want {
 		t.Errorf("output of Invoke: want %q; got %q", want, got)
+	}
+}
+
+func TestConfigureArray_missingMiddleware(t *testing.T) {
+	r := run.NewRegistry()
+	m := NewWithRegistry(r)
+
+	err := config.Configure(m, []interface{}{"some-middleware"})
+	if err == nil {
+		t.Error("expected config.Configure to return an error but it did not")
+	}
+}
+
+func TestConfigureArray_invalidMiddlewareStringConfig(t *testing.T) {
+	r := newRegistry()
+	m := NewWithRegistry(r)
+
+	err := config.Configure(m, []interface{}{"prepend"})
+	if err == nil {
+		t.Error("expected config.Configure to return an error but it did not")
+	}
+}
+
+func TestConfigureArray_middlewareMapConfig(t *testing.T) {
+	r := newRegistry()
+	m := NewWithRegistry(r)
+
+	cfg := map[string]interface{}{
+		"count": 3,
+		"name":  "some value",
+	}
+
+	err := config.Configure(m, []interface{}{
+		map[string]interface{}{
+			"map": cfg,
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("config.Configure returned error: %+v", err)
+	}
+
+	output, err := m.Invoke(context.Background(), nil, &echoFn{})
+	if err != nil {
+		t.Errorf("Invoke returned error: %+v", err)
+	}
+
+	got, ok := output.(string)
+	if !ok {
+		t.Errorf("Expected output to be a string but it was a %T", output)
+	}
+	want := "count: 3 ; name: some value"
+	if got != want {
+		t.Errorf("want: %q; got %q", want, got)
+	}
+}
+
+func TestConfigureArray_mapWithMultiKeysAsSingleMiddlewareConfig(t *testing.T) {
+	r := newRegistry()
+	m := NewWithRegistry(r)
+
+	cfg := map[string]interface{}{
+		"count": 3,
+		"name":  "some value",
+	}
+
+	got := config.Configure(m, []interface{}{
+		map[string]interface{}{
+			"map":       cfg,
+			"something": "else",
+		},
+	})
+
+	want := errSingleKey
+
+	if got != want {
+		t.Errorf("want %+v; got %+v", want, got)
+	}
+}
+
+func TestConfigureArray_mapWithMissingMiddleware(t *testing.T) {
+	r := newRegistry()
+	m := NewWithRegistry(r)
+
+	err := config.Configure(m, []interface{}{
+		map[string]interface{}{
+			"unknown": map[string]interface{}{"some": "value"},
+		},
+	})
+
+	if err == nil {
+		t.Fatalf("Expected config.Configure to return an error but it did not")
+	}
+
+	got := err.Error()
+	want := "no middleware registered with key unknown"
+
+	if got != want {
+		t.Errorf("error message: want %q, got %q", want, got)
+	}
+}
+
+func TestConfigureArray_mapWithInvalidMiddlewareConfig(t *testing.T) {
+	r := newRegistry()
+	m := NewWithRegistry(r)
+
+	err := config.Configure(m, []interface{}{
+		map[string]interface{}{
+			"map": 3,
+		},
+	})
+
+	if err == nil {
+		t.Error("expected config.Configure to return an error but it did not")
+	}
+}
+
+func TestConfigureArray_invalidMiddlewareType(t *testing.T) {
+	r := newRegistry()
+	m := NewWithRegistry(r)
+
+	err := config.Configure(m, []interface{}{
+		3,
+	})
+
+	if err == nil {
+		t.Fatal("expected config.Configure to return an error but it did not")
+	}
+
+	got := err.Error()
+	want := "wrong middleware configuration type: int, expected string or object"
+	if got != want {
+		t.Errorf("error message: want %q; got %q", want, got)
 	}
 }
 
@@ -130,6 +267,32 @@ func (p *prependMiddleware) Invoke(ctx context.Context, input interface{}, f fn.
 	return f.Invoke(ctx, p.prefix+input.(string))
 }
 
+func (p *prependMiddleware) RequiresConfig() bool {
+	return true
+}
+
 func NewPrependMiddleware() run.Middleware {
 	return &prependMiddleware{}
+}
+
+type mapConfigMiddleware struct {
+	Count int    `mapstructure:"count"`
+	Name  string `mapstructure:"name"`
+}
+
+func (m *mapConfigMiddleware) RequiresConfig() bool {
+	return true
+}
+
+func (m *mapConfigMiddleware) ConfigureMap(configMap map[string]interface{}) error {
+	return mapstructure.Decode(configMap, m)
+}
+
+func (m *mapConfigMiddleware) Invoke(context.Context, interface{}, fn.Fn) (interface{}, error) {
+	message := fmt.Sprintf("count: %d ; name: %s", m.Count, m.Name)
+	return message, nil
+}
+
+func NewMapConfigMiddleware() run.Middleware {
+	return &mapConfigMiddleware{}
 }

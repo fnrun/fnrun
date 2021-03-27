@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fnrun/fnrun/pkg/fn"
+	"github.com/fnrun/fnrun/pkg/run/config"
 )
 
 func TestNew_withTimeout(t *testing.T) {
@@ -45,6 +46,14 @@ func TestConfigureString(t *testing.T) {
 	}
 	if tm.duration != 15*time.Second {
 		t.Errorf("Duration contains incorrect duration; want 15s, got %s", tm.duration)
+	}
+}
+
+func TestConfigureString_invalidString(t *testing.T) {
+	m := New()
+	err := config.Configure(m, "some invalid string")
+	if err == nil {
+		t.Error("expected config.Configure to return an error but it did not")
 	}
 }
 
