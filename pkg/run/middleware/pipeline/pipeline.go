@@ -20,6 +20,8 @@ import (
 	"github.com/fnrun/fnrun/pkg/run/fn/middleware"
 )
 
+var errSingleKey = errors.New("middleware config should be object with single key")
+
 type identityMiddleware struct{}
 
 func (*identityMiddleware) Invoke(ctx context.Context, input interface{}, f fn.Fn) (interface{}, error) {
@@ -58,9 +60,9 @@ func (p *pipelineMiddleware) ConfigureArray(cfg []interface{}) error {
 	middlewares := make([]run.Middleware, 0)
 
 	for _, middlewareConfig := range cfg {
-		switch middlewareConfig.(type) {
+		switch middlewareConfig := middlewareConfig.(type) {
 		case string:
-			factory, exists := p.registry.FindMiddleware(middlewareConfig.(string))
+			factory, exists := p.registry.FindMiddleware(middlewareConfig)
 			if !exists {
 				return fmt.Errorf("no middleware registered with key %s", middlewareConfig)
 			}
@@ -72,9 +74,9 @@ func (p *pipelineMiddleware) ConfigureArray(cfg []interface{}) error {
 			middlewares = append(middlewares, middleware)
 
 		case map[string]interface{}:
-			mapConfig := middlewareConfig.(map[string]interface{})
+			mapConfig := middlewareConfig
 			if len(mapConfig) != 1 {
-				return errors.New("middleware config should be object with single key")
+				return errSingleKey
 			}
 			key := ""
 			for k := range mapConfig {
