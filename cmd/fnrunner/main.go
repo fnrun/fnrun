@@ -20,6 +20,7 @@ import (
 	"github.com/fnrun/fnrun/pkg/run/middleware/pipeline"
 	"github.com/fnrun/fnrun/pkg/run/middleware/timeout"
 	"github.com/fnrun/fnrun/pkg/run/runner"
+	"github.com/fnrun/fnrun/pkg/run/source/cron"
 	"github.com/fnrun/fnrun/pkg/run/source/http"
 	"github.com/fnrun/fnrun/pkg/run/source/kafka"
 	"github.com/fnrun/fnrun/pkg/run/source/lambda"
@@ -52,6 +53,7 @@ func main() {
 	registry.RegisterMiddleware("fnrun.middleware/timeout", timeout.New)
 	registry.RegisterMiddlewareWithRegistry("middleware", pipeline.NewWithRegistry)
 
+	registry.RegisterSource("fnrun.source/cron", cron.New)
 	registry.RegisterSource("fnrun.source/http", http.New)
 	registry.RegisterSource("fnrun.source/kafka", kafka.New)
 	registry.RegisterSource("fnrun.source/lambda", lambda.New)
