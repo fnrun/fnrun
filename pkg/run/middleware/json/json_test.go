@@ -3,6 +3,7 @@ package json
 import (
 	"context"
 	"errors"
+	"math"
 	"reflect"
 	"testing"
 
@@ -42,10 +43,7 @@ func TestTranscode_serialize(t *testing.T) {
 }
 
 func TestTranscode_serializeWithInvalidInput(t *testing.T) {
-	input := make(map[string]interface{})
-	input["key"] = input
-
-	output, err := transcode(input, "serialize")
+	output, err := transcode(math.NaN(), "serialize")
 	if err == nil {
 		t.Error("expected transcode to return error but it did not")
 	}
@@ -122,10 +120,6 @@ func TestInvoke(t *testing.T) {
 }
 
 func TestInvoke_invalidInput(t *testing.T) {
-	// define a circular structure, which cannot be serialized
-	input := make(map[string]interface{})
-	input["key"] = input
-
 	m := New()
 	err := config.Configure(m, map[string]interface{}{"input": "serialize"})
 	if err != nil {
@@ -136,7 +130,7 @@ func TestInvoke_invalidInput(t *testing.T) {
 		return "called", nil
 	})
 
-	output, err := m.Invoke(context.Background(), input, f)
+	output, err := m.Invoke(context.Background(), math.NaN(), f)
 	if err == nil {
 		t.Error("expected Invoke to return an error but it did not")
 	}
@@ -153,11 +147,7 @@ func TestInvoke_invalidOutput(t *testing.T) {
 	}
 
 	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
-		// define a circular structure, which cannot be serialized
-		returnValue := make(map[string]interface{})
-		returnValue["key"] = returnValue
-
-		return returnValue, nil
+		return math.NaN(), nil
 	})
 
 	output, err := m.Invoke(context.Background(), "some input", f)
