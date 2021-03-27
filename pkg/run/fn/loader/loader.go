@@ -19,7 +19,7 @@ type wrappedFn struct {
 func (w *wrappedFn) ConfigureString(fnKey string) error {
 	fnFactory, exists := w.registry.FindFn(fnKey)
 	if !exists {
-		return fmt.Errorf("a registered function not found for key %q", fnKey)
+		return fmt.Errorf("a registered fn not found for key %q", fnKey)
 	}
 	fn := fnFactory()
 	err := config.Configure(fn, nil)
@@ -28,7 +28,7 @@ func (w *wrappedFn) ConfigureString(fnKey string) error {
 	}
 
 	w.fn = fn
-	return err
+	return nil
 }
 
 func (w *wrappedFn) ConfigureMap(configMap map[string]interface{}) error {
@@ -39,7 +39,7 @@ func (w *wrappedFn) ConfigureMap(configMap map[string]interface{}) error {
 
 	fnFactory, exists := w.registry.FindFn(fnKey)
 	if !exists {
-		return fmt.Errorf("a registered function not found for key %q", fnKey)
+		return fmt.Errorf("a registered fn not found for key %q", fnKey)
 	}
 
 	fn := fnFactory()
