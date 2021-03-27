@@ -3,6 +3,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -112,5 +113,5 @@ func GetSinglePair(m map[string]interface{}) (string, interface{}, error) {
 		}
 	}
 
-	return "", nil, fmt.Errorf("expected map to have have exactly one entry")
+	return "", nil, errors.New("expected map to have exactly one entry")
 }

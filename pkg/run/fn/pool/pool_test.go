@@ -11,6 +11,7 @@ import (
 	"github.com/fnrun/fnrun/pkg/run"
 	"github.com/fnrun/fnrun/pkg/run/config"
 	"github.com/fnrun/fnrun/pkg/run/fn/pool"
+	"github.com/mitchellh/mapstructure"
 )
 
 func newPool(t *testing.T, template interface{}) fn.Fn {
@@ -82,6 +83,149 @@ func TestNew_withTimeout(t *testing.T) {
 	}
 }
 
+func TestConfigure_invalidConfig(t *testing.T) {
+	r := run.NewRegistry()
+	p := pool.New(r)
+
+	err := config.Configure(p, nil)
+	if err == nil {
+		t.Error("expected config.Configure to return an error but it did not")
+	}
+}
+
+func TestConfigure_unknownFn(t *testing.T) {
+	r := run.NewRegistry()
+	p := pool.New(r)
+
+	err := config.Configure(p, map[string]interface{}{
+		"template": "unknown-fn",
+	})
+	if err == nil {
+		t.Fatal("expected config.Configure to return an error but it did not")
+	}
+
+	got := err.Error()
+	want := `a registered fn not found for key "unknown-fn"`
+
+	if got != want {
+		t.Errorf("unexecpted error message: want %q, got %q", want, got)
+	}
+}
+
+func TestConfigureMap_configWithInvalidUndecodableValue(t *testing.T) {
+	r := run.NewRegistry()
+	p := pool.New(r)
+
+	err := config.Configure(p, map[string]interface{}{
+		"concurrency": "not an int",
+	})
+	if err == nil {
+		t.Fatal("expected config.Configure to return an error and it did not")
+	}
+
+	got := err.Error()
+	want := "1 error(s) decoding:\n\n* 'concurrency' expected type 'int', got unconvertible type 'string', value: 'not an int'"
+
+	if got != want {
+		t.Errorf("unexpected error message: want %q, got %q", want, got)
+	}
+}
+
+func TestConfigureMap_configWithInvalidDurationString(t *testing.T) {
+	r := run.NewRegistry()
+	p := pool.New(r)
+
+	err := config.Configure(p, map[string]interface{}{
+		"maxWaitDuration": "an invalid value",
+	})
+	if err == nil {
+		t.Fatal("expected config.Configure to return an error and it did not")
+	}
+
+	got := err.Error()
+	want := `time: invalid duration "an invalid value"`
+
+	if got != want {
+		t.Errorf("unexpected error message: want %q, got %q", want, got)
+	}
+}
+
+func TestConfigureMap_templateMapConfig(t *testing.T) {
+	r := run.NewRegistry()
+	r.RegisterFn("map", func() fn.Fn { return &mapFn{} })
+	p := pool.New(r)
+
+	err := config.Configure(p, map[string]interface{}{
+		"template": map[string]interface{}{
+			"map": map[string]interface{}{
+				"count": 3,
+				"name":  "some name",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("config.Configure returned error: %+v", err)
+	}
+
+	output, err := p.Invoke(context.Background(), "some input")
+	if err != nil {
+		t.Errorf("Invoke returned error: %+v", err)
+	}
+
+	want := "count: 3, name: some name"
+	got, ok := output.(string)
+	if !ok {
+		t.Fatalf("expected output to be a string but it was a %T", output)
+	}
+
+	if got != want {
+		t.Errorf("unexpected output: want %q, got %q", want, got)
+	}
+}
+
+func TestConfigureMap_templateMapConfig_multipleValues(t *testing.T) {
+	r := run.NewRegistry()
+	p := pool.New(r)
+
+	err := config.Configure(p, map[string]interface{}{
+		"template": map[string]interface{}{
+			"key1": "some value",
+			"key2": "other value",
+		},
+	})
+
+	if err == nil {
+		t.Fatal("expected config.Configure to return an error but it did not")
+	}
+
+	got := err.Error()
+	want := "expected map to have exactly one entry"
+
+	if got != want {
+		t.Errorf("unexpected error message: want %q, got %q", want, got)
+	}
+}
+
+func TestConfigureMap_templateInvalidType(t *testing.T) {
+	r := run.NewRegistry()
+	p := pool.New(r)
+
+	err := config.Configure(p, map[string]interface{}{
+		"template": 3,
+	})
+
+	if err == nil {
+		t.Fatal("expected config.Configure to return an error but it did not")
+	}
+
+	got := err.Error()
+	want := "unsupported config type"
+
+	if got != want {
+		t.Errorf("unexpected error message: want %q, got %q", want, got)
+	}
+}
+
 // -----------------------------------------------------------------------------
 // Sample functions
 
@@ -106,4 +250,17 @@ func (*echoFn) Invoke(ctx context.Context, input interface{}) (interface{}, erro
 
 func NewEchoFn() fn.Fn {
 	return &echoFn{}
+}
+
+type mapFn struct {
+	Count int    `mapstructure:"count"`
+	Name  string `mapstructure:"name"`
+}
+
+func (m *mapFn) ConfigureMap(configMap map[string]interface{}) error {
+	return mapstructure.Decode(configMap, m)
+}
+
+func (m *mapFn) Invoke(context.Context, interface{}) (interface{}, error) {
+	return fmt.Sprintf("count: %d, name: %s", m.Count, m.Name), nil
 }

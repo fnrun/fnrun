@@ -39,10 +39,7 @@ func (p *poolFn) Invoke(ctx context.Context, input interface{}) (interface{}, er
 	case f := <-p.fnChan:
 		output, err := f.Invoke(ctx, input)
 		p.fnChan <- f
-		if err != nil {
-			return nil, err
-		}
-		return output, nil
+		return output, err
 	case <-time.After(p.maxWaitDuration):
 		return nil, ErrAvailabilityTimeout
 	}
@@ -55,18 +52,18 @@ func (*poolFn) RequiresConfig() bool {
 func createFn(r run.Registry, fnName string, cfg interface{}) (fn.Fn, error) {
 	factory, hasFn := r.FindFn(fnName)
 	if !hasFn {
-		return nil, fmt.Errorf("fn %s was not registered with r", fnName)
+		return nil, fmt.Errorf("a registered fn not found for key %q", fnName)
 	}
 	f := factory()
 	return f, config.Configure(f, cfg)
 }
 
 func createFnFromTemplate(r run.Registry, cfg interface{}) (fn.Fn, error) {
-	switch cfg.(type) {
+	switch cfg := cfg.(type) {
 	case string:
-		return createFn(r, cfg.(string), nil)
+		return createFn(r, cfg, nil)
 	case map[string]interface{}:
-		fnName, c, err := config.GetSinglePair(cfg.(map[string]interface{}))
+		fnName, c, err := config.GetSinglePair(cfg)
 		if err != nil {
 			return nil, err
 		}
