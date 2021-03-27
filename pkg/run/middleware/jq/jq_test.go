@@ -3,13 +3,69 @@ package jq
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/fnrun/fnrun/pkg/fn"
+	"github.com/fnrun/fnrun/pkg/run/config"
 	"github.com/fnrun/fnrun/pkg/run/fn/identity"
 )
+
+func TestConfigure_invalidConfig(t *testing.T) {
+	m := New()
+	err := config.Configure(m, nil)
+
+	if err == nil {
+		t.Error("expected config.Configure to return an error but it did not")
+	}
+}
+
+func TestConfigureMap_invalidDestructure(t *testing.T) {
+	m := New()
+	err := config.Configure(m, map[string]interface{}{"input": 4})
+	if err == nil {
+		t.Fatal("expected config.Configure to return an error but it did not")
+	}
+
+	want := "1 error(s) decoding:\n\n* 'input' expected type 'string', got unconvertible type 'int', value: '4'"
+	got := err.Error()
+
+	if got != want {
+		t.Errorf("unexpected error message: want %q, got %q", want, got)
+	}
+}
+
+func TestConfigureMap_invalidInputConfiguration(t *testing.T) {
+	m := New()
+	err := config.Configure(m, map[string]interface{}{"input": "["})
+	if err == nil {
+		t.Error("expected config.Configure to return an error but it did not")
+	}
+
+	want := "invalid input configuration: unexpected token <EOF>"
+	got := err.Error()
+
+	if got != want {
+		t.Errorf("unexpected error message: want %q, got %q", want, got)
+	}
+}
+
+func TestConfigureMap_invalidOutputConfiguration(t *testing.T) {
+	m := New()
+	err := config.Configure(m, map[string]interface{}{"output": "["})
+	if err == nil {
+		t.Error("expected config.Configure to return an error but it did not")
+	}
+
+	want := "invalid output configuration: unexpected token <EOF>"
+	got := err.Error()
+
+	if got != want {
+		t.Errorf("unexpected error message: want %q, got %q", want, got)
+	}
+}
 
 func TestInvoke_inputOnly_singleOutput(t *testing.T) {
 	f := identity.New()
@@ -94,5 +150,50 @@ func TestInvoke(t *testing.T) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestInvoke_unsatsifiableInputQuery(t *testing.T) {
+	m := New()
+	err := config.Configure(m, map[string]interface{}{"input": ".x"})
+	if err != nil {
+		t.Fatalf("config.Configure returned error: %+v", err)
+	}
+
+	output, err := m.Invoke(context.Background(), "invalid input", identity.New())
+
+	if err == nil {
+		t.Error("expected Invoke to return an error but it did not")
+	}
+
+	if output != nil {
+		t.Errorf("expected output to be nil but it was %#v", output)
+	}
+}
+
+func TestInvoke_whenFnReturnsErrorDoesNotProcessOutput(t *testing.T) {
+	m := New()
+	err := config.Configure(m, map[string]interface{}{"output": ".x"})
+	if err != nil {
+		t.Fatalf("config.Configure returned an error: %+v", err)
+	}
+	errCustom := errors.New("custom error")
+	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
+		return "some value", errCustom
+	})
+
+	output, err := m.Invoke(context.Background(), "some input", f)
+	if err != errCustom {
+		t.Errorf("unexpected error from Invoke: want %+v, got %+v", errCustom, err)
+	}
+
+	wantOutput := "some value"
+	gotOutput, ok := output.(string)
+	if !ok {
+		t.Errorf("expected output to be a string but it was a %T", output)
+	}
+
+	if gotOutput != wantOutput {
+		t.Errorf("unexpected output: want %q, got %q", wantOutput, gotOutput)
 	}
 }

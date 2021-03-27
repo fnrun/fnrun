@@ -9,6 +9,7 @@ import (
 	"github.com/fnrun/fnrun/pkg/run"
 	"github.com/itchyny/gojq"
 	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 )
 
 type jqMiddleware struct {
@@ -71,13 +72,13 @@ func (j *jqMiddleware) ConfigureMap(configMap map[string]interface{}) error {
 
 	inputCode, err := compile(config.Input)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "invalid input configuration")
 	}
 	j.input = inputCode
 
 	outputCode, err := compile(config.Output)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "invalid output configuration")
 	}
 	j.output = outputCode
 
