@@ -34,12 +34,10 @@ func (r *Runner) ConfigureMap(configMap map[string]interface{}) error {
 		Fn         interface{} `mapstructure:"fn"`
 	}{}
 
-	if err := mapstructure.Decode(configMap, &cfg); err != nil {
-		return err
-	}
+	mapstructure.Decode(configMap, &cfg)
 
 	if cfg.Source == nil {
-		return errors.New("source is a require configuration key")
+		return errors.New("source is a required configuration key")
 	}
 	if cfg.Fn == nil {
 		return errors.New("fn is a required configuration key")
@@ -47,7 +45,7 @@ func (r *Runner) ConfigureMap(configMap map[string]interface{}) error {
 
 	fnFactory, exists := r.registry.FindFn("fn")
 	if !exists {
-		return errors.New("no matching function for key fn")
+		return errors.New(`a registered fn not found for key "fn"`)
 	}
 	f := fnFactory()
 	if err := config.Configure(f, cfg.Fn); err != nil {
@@ -57,7 +55,7 @@ func (r *Runner) ConfigureMap(configMap map[string]interface{}) error {
 	if cfg.Middleware != nil {
 		middlewareFactory, exists := r.registry.FindMiddleware("middleware")
 		if !exists {
-			return errors.New("no matching middleware for key middleware")
+			return errors.New(`a registered middleware not found for key "middleware"`)
 		}
 		m := middlewareFactory()
 		if err := config.Configure(m, cfg.Middleware); err != nil {
@@ -68,11 +66,11 @@ func (r *Runner) ConfigureMap(configMap map[string]interface{}) error {
 
 	sourceFactory, exists := r.registry.FindSource("source")
 	if !exists {
-		return errors.New("no matching source for key source")
+		return errors.New(`a registered source not found for key "source"`)
 	}
 	source := sourceFactory()
 	if err := config.Configure(source, cfg.Source); err != nil {
-		return nil
+		return err
 	}
 
 	r.fn = f
