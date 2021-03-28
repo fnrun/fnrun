@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
@@ -15,40 +16,64 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-type httpSourceConfig struct {
-	Addr              string            `mapstructure:"address,omitempty"`
-	TLSKeyFile        string            `mapstructure:"keyFile,omitempty"`
-	TLSCertFile       string            `mapstructure:"certFile,omitempty"`
-	Base64EncodeBody  bool              `mapstructure:"base64EncodeBody,omitempty"`
-	TreatOutputAsBody bool              `mapstructure:"treatOutputAsBody,omitempty"`
-	DefaultHeaders    map[string]string `mapstructure:"outputHeaders,omitempty"`
-	IgnoreOutput      bool              `mapstructure:"ignoreOutput,omitempty"`
-}
 type httpSource struct {
-	config *httpSourceConfig
+	Addr                string            `mapstructure:"address,omitempty"`
+	TLSKeyFile          string            `mapstructure:"keyFile,omitempty"`
+	TLSCertFile         string            `mapstructure:"certFile,omitempty"`
+	Base64EncodeBody    bool              `mapstructure:"base64EncodeBody,omitempty"`
+	TreatOutputAsBody   bool              `mapstructure:"treatOutputAsBody,omitempty"`
+	DefaultHeaders      map[string]string `mapstructure:"outputHeaders,omitempty"`
+	IgnoreOutput        bool              `mapstructure:"ignoreOutput,omitempty"`
+	ShutdownGracePeriod time.Duration     `mapstructure:"shutdownGracePeriod,omitempty"`
+	Listener            net.Listener
 }
 
 func (h *httpSource) ConfigureMap(configMap map[string]interface{}) error {
-	return mapstructure.Decode(configMap, h.config)
+	decoderConfig := &mapstructure.DecoderConfig{
+		Metadata:   nil,
+		Result:     h,
+		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+	}
+	decoder, err := mapstructure.NewDecoder(decoderConfig)
+	if err != nil {
+		return err
+	}
+
+	err = decoder.Decode(configMap)
+	if err != nil {
+		return err
+	}
+
+	ln, err := net.Listen("tcp", h.Addr)
+	if err != nil {
+		return err
+	}
+
+	h.Listener = ln
+	return nil
 }
 
 func (h *httpSource) Serve(ctx context.Context, f fn.Fn) error {
 	errorChan := make(chan error, 1)
 
-	http.HandleFunc("/", makeHandler(ctx, f, h.config))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", h.makeHandler(ctx, f))
 
-	srv := &http.Server{Addr: h.config.Addr}
+	srv := &http.Server{
+		Addr:    h.Addr,
+		Handler: mux,
+	}
 
 	go func() {
-		if h.config.TLSCertFile != "" || h.config.TLSKeyFile != "" {
-			errorChan <- srv.ListenAndServeTLS(h.config.TLSCertFile, h.config.TLSKeyFile)
+		if h.TLSCertFile != "" || h.TLSKeyFile != "" {
+			errorChan <- srv.ServeTLS(h.Listener, h.TLSCertFile, h.TLSKeyFile)
 			return
 		}
-		errorChan <- srv.ListenAndServe()
+		errorChan <- srv.Serve(h.Listener)
 	}()
 
 	<-ctx.Done()
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), h.ShutdownGracePeriod)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
@@ -58,21 +83,9 @@ func (h *httpSource) Serve(ctx context.Context, f fn.Fn) error {
 	return <-errorChan
 }
 
-// New returns a new source that with default values. When Serve is called on
-// the resulting object, the source will start a new HTTP server based on its
-// configuration and invoke a function with values received as HTTP requests.
-func New() run.Source {
-	return &httpSource{
-		config: &httpSourceConfig{
-			Addr:           ":8080",
-			DefaultHeaders: make(map[string]string),
-		},
-	}
-}
-
-func makeHandler(ctx context.Context, f fn.Fn, config *httpSourceConfig) func(w http.ResponseWriter, r *http.Request) {
+func (h *httpSource) makeHandler(ctx context.Context, f fn.Fn) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		input, err := createInput(r, config)
+		input, err := h.createInput(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -85,8 +98,8 @@ func makeHandler(ctx context.Context, f fn.Fn, config *httpSourceConfig) func(w 
 			return
 		}
 
-		if config.TreatOutputAsBody {
-			if err := writeResponse(w, map[string]interface{}{"body": fmt.Sprint(output)}, config); err != nil {
+		if h.TreatOutputAsBody {
+			if err := h.writeResponse(w, map[string]interface{}{"body": fmt.Sprint(output)}); err != nil {
 				log.Printf("%#v", err)
 			}
 			return
@@ -99,13 +112,15 @@ func makeHandler(ctx context.Context, f fn.Fn, config *httpSourceConfig) func(w 
 			return
 		}
 
-		if err := writeResponse(w, m, config); err != nil {
+		if err := h.writeResponse(w, m); err != nil {
 			log.Printf("%#v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 	}
 }
 
-func createInput(r *http.Request, config *httpSourceConfig) (map[string]interface{}, error) {
+func (h *httpSource) createInput(r *http.Request) (map[string]interface{}, error) {
 	input := make(map[string]interface{})
 
 	input["host"] = r.Host
@@ -119,11 +134,9 @@ func createInput(r *http.Request, config *httpSourceConfig) (map[string]interfac
 	if err != nil {
 		return nil, err
 	}
-	if err = r.Body.Close(); err != nil {
-		return nil, err
-	}
+	defer r.Body.Close()
 
-	if config.Base64EncodeBody {
+	if h.Base64EncodeBody {
 		input["body"] = base64.StdEncoding.EncodeToString(bodyBytes)
 	} else {
 		input["body"] = string(bodyBytes)
@@ -153,20 +166,19 @@ func createInput(r *http.Request, config *httpSourceConfig) (map[string]interfac
 	return input, nil
 }
 
-type response struct {
-	Headers    map[string]string `mapstructure:"headers,omitempty"`
-	Body       string            `mapstructure:"body,omitempty"`
-	StatusCode int               `mapstructure:"statusCode,omitempty"`
-}
+func (h *httpSource) writeResponse(w http.ResponseWriter, m map[string]interface{}) error {
+	resp := &struct {
+		Headers    map[string]string `mapstructure:"headers,omitempty"`
+		Body       string            `mapstructure:"body,omitempty"`
+		StatusCode int               `mapstructure:"statusCode,omitempty"`
+	}{}
 
-func writeResponse(w http.ResponseWriter, m map[string]interface{}, config *httpSourceConfig) error {
-	var resp response
 	if err := mapstructure.Decode(m, &resp); err != nil {
 		return err
 	}
 
 	if len(resp.Headers) == 0 {
-		for key, value := range config.DefaultHeaders {
+		for key, value := range h.DefaultHeaders {
 			w.Header().Add(key, value)
 		}
 	}
@@ -180,10 +192,21 @@ func writeResponse(w http.ResponseWriter, m map[string]interface{}, config *http
 		w.WriteHeader(resp.StatusCode)
 	}
 
-	if !config.IgnoreOutput {
+	if !h.IgnoreOutput {
 		_, err := w.Write([]byte(resp.Body))
 		return err
 	}
 
 	return nil
+}
+
+// New returns a new source that with default values. When Serve is called on
+// the resulting object, the source will start a new HTTP server based on its
+// configuration and invoke a function with values received as HTTP requests.
+func New() run.Source {
+	return &httpSource{
+		Addr:                ":8080",
+		DefaultHeaders:      make(map[string]string),
+		ShutdownGracePeriod: 10 * time.Second,
+	}
 }
