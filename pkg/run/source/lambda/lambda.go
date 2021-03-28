@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -15,64 +14,6 @@ import (
 	"github.com/fnrun/fnrun/pkg/run"
 	"github.com/mitchellh/mapstructure"
 )
-
-type lambdaSource struct {
-	config *lambdaSourceConfig
-}
-
-type lambdaSourceConfig struct {
-	JSONDeserializeEvent bool `mapstructure:"jsonDeserializeEvent,omitempty"`
-}
-
-func (l *lambdaSource) Serve(ctx context.Context, f fn.Fn) error {
-	runtimeAPI := os.Getenv("AWS_LAMBDA_RUNTIME_API")
-	baseURL := fmt.Sprintf("http://%s/2018-06-01/runtime/invocation", runtimeAPI)
-	nextURL := fmt.Sprintf("%s/next", baseURL)
-
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		resp, err := http.Get(nextURL)
-		if err != nil {
-			return err
-		}
-
-		invocationID := resp.Header.Get("Lambda-Runtime-Aws-Request-Id")
-
-		input, err := createInput(resp, l.config)
-		if err != nil {
-			return err
-		}
-
-		output, err := f.Invoke(ctx, input)
-		if err != nil {
-			if err := postError(baseURL, invocationID, err); err != nil {
-				return err
-			}
-			continue
-		}
-
-		responseURL := fmt.Sprintf("%s/%s/response", baseURL, invocationID)
-
-		var responseData []byte
-
-		switch output := output.(type) {
-		case string:
-			responseData = []byte(output)
-		case map[string]interface{}:
-			responseData, err = json.Marshal(output)
-			if err != nil {
-				return err
-			}
-		default:
-			return errors.New("expected output to be either a string or map[string]interface{}")
-		}
-
-		http.Post(responseURL, "application/json", bytes.NewBuffer(responseData))
-	}
-}
 
 func postError(baseURL string, invocationID string, errToSend error) error {
 	errorURL := fmt.Sprintf("%s/%s/error", baseURL, invocationID)
@@ -91,7 +32,59 @@ func postError(baseURL string, invocationID string, errToSend error) error {
 	return err
 }
 
-func createInput(resp *http.Response, config *lambdaSourceConfig) (map[string]interface{}, error) {
+type lambdaSource struct {
+	JSONDeserializeEvent bool   `mapstructure:"jsonDeserializeEvent,omitempty"`
+	RuntimeAPI           string `mapstructure:"runtimeAPI,omitempty"`
+}
+
+func (l *lambdaSource) Serve(ctx context.Context, f fn.Fn) error {
+	baseURL := fmt.Sprintf("http://%s/2018-06-01/runtime/invocation", l.RuntimeAPI)
+	nextURL := fmt.Sprintf("%s/next", baseURL)
+
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		resp, err := http.Get(nextURL)
+		if err != nil {
+			return err
+		}
+
+		invocationID := resp.Header.Get("Lambda-Runtime-Aws-Request-Id")
+
+		input, err := l.createInput(resp)
+		if err != nil {
+			return err
+		}
+
+		output, err := f.Invoke(ctx, input)
+		if err != nil {
+			if err := postError(baseURL, invocationID, err); err != nil {
+				return err
+			}
+			continue
+		}
+
+		responseURL := fmt.Sprintf("%s/%s/response", baseURL, invocationID)
+
+		var responseData []byte
+
+		switch output := output.(type) {
+		case map[string]interface{}:
+			responseData, err = json.Marshal(output)
+			if err != nil {
+				return err
+			}
+		default:
+			responseData = []byte(fmt.Sprint(output))
+		}
+
+		http.Post(responseURL, "application/json", bytes.NewBuffer(responseData))
+	}
+}
+
+func (l *lambdaSource) createInput(resp *http.Response) (map[string]interface{}, error) {
 	input := make(map[string]interface{})
 	eventBytes, err := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
@@ -115,7 +108,7 @@ func createInput(resp *http.Response, config *lambdaSourceConfig) (map[string]in
 		input["LambdaRuntimeTraceId"] = traceID
 	}
 
-	if config.JSONDeserializeEvent {
+	if l.JSONDeserializeEvent {
 		body := make(map[string]interface{})
 		if err := json.Unmarshal(eventBytes, &body); err != nil {
 			return nil, err
@@ -129,14 +122,13 @@ func createInput(resp *http.Response, config *lambdaSourceConfig) (map[string]in
 }
 
 func (l *lambdaSource) ConfigureMap(configMap map[string]interface{}) error {
-	return mapstructure.Decode(configMap, l.config)
+	return mapstructure.Decode(configMap, l)
 }
 
 // New returns a source that serves requests from AWS Lambda.
 func New() run.Source {
 	return &lambdaSource{
-		config: &lambdaSourceConfig{
-			JSONDeserializeEvent: true,
-		},
+		JSONDeserializeEvent: true,
+		RuntimeAPI:           os.Getenv("AWS_LAMBDA_RUNTIME_API"),
 	}
 }
