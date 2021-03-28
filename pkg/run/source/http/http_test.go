@@ -1,319 +1,407 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
-	"reflect"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/fnrun/fnrun/pkg/fn"
+	"github.com/fnrun/fnrun/pkg/run/config"
+	"github.com/fnrun/fnrun/pkg/run/fn/identity"
 )
 
-func TestHandler_outputAsBody(t *testing.T) {
-	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
-	if err != nil {
-		t.Fatalf("NewRequest returned error: %#v", err)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	rr := httptest.NewRecorder()
-	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
-		return "output", nil
+func TestConfigureMap_invalidInput(t *testing.T) {
+	src := New()
+	err := config.Configure(src, map[string]interface{}{
+		"ignoreOutput": 3,
 	})
 
-	config := &httpSourceConfig{
-		Addr:              ":8080",
-		TreatOutputAsBody: true,
-	}
-
-	handler := http.HandlerFunc(makeHandler(ctx, f, config))
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned non-OK status code: %d", rr.Code)
-	}
-
-	want := "output"
-	got := rr.Body.String()
-
-	if got != want {
-		t.Errorf("response output: want %q, got %q", want, got)
+	if err == nil {
+		t.Fatal("expected config.Configure to return an error but it did not")
 	}
 }
 
-func TestHandler_outputAsResponse(t *testing.T) {
-	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
+func TestServe(t *testing.T) {
+	src := New().(*httpSource)
+	err := config.Configure(src, map[string]interface{}{
+		"address":           "127.0.0.1:0",
+		"treatOutputAsBody": true,
+		"outputHeaders": map[string]string{
+			"Content-Type": "application/json",
+		},
+	})
+	url := fmt.Sprintf("http://%s/", src.Listener.Addr().String())
+
 	if err != nil {
-		t.Fatalf("NewRequest returned error: %#v", err)
+		t.Fatalf("config.Configure returned an error: %+v", err)
 	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	rr := httptest.NewRecorder()
-	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
-		return map[string]interface{}{
-			"body": `{"a": "b"}`,
-			"headers": map[string]string{
-				"content-type":    "application/json",
-				"x-custom-header": "custom header value",
-			},
-			"statusCode": http.StatusCreated,
-		}, nil
-	})
+	go func() {
+		src.Serve(ctx, fn.NewFnFromInvokeFunc(func(ctx context.Context, input interface{}) (interface{}, error) {
+			return input.(map[string]interface{})["body"], nil
+		}))
+	}()
 
-	config := &httpSourceConfig{
-		Addr: ":8080",
+	body := "some value"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		t.Fatalf("error posting: %+v", err)
 	}
 
-	handler := http.HandlerFunc(makeHandler(ctx, f, config))
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusCreated {
-		t.Errorf("handler returned non-OK status code: %d", rr.Code)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll returned error: %+v", err)
 	}
 
-	want := `{"a": "b"}`
-	got := rr.Body.String()
+	want := "some value"
+	got := string(respBody)
 
 	if got != want {
-		t.Errorf("response output: want %q, got %q", want, got)
+		t.Errorf("unexpected result: want %q, got %q", want, got)
 	}
 
-	gotHeaders := make(map[string][]string)
-	for k, v := range rr.Result().Header {
-		gotHeaders[k] = v
-	}
-	wantHeaders := map[string][]string{
-		"Content-Type":    {"application/json"},
-		"X-Custom-Header": {"custom header value"},
-	}
-
-	if !reflect.DeepEqual(gotHeaders, wantHeaders) {
-		t.Errorf("headers did not match:\nwant: %s\ngot:  %s\n", wantHeaders, gotHeaders)
+	wantContentType := "application/json"
+	gotContentType := resp.Header.Get("Content-Type")
+	if gotContentType != wantContentType {
+		t.Errorf("incorrect content-type: want %q, got %q", wantContentType, gotContentType)
 	}
 }
 
-func TestHandler_ignoreOutput(t *testing.T) {
-	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
+func TestServe_ignoreOutput(t *testing.T) {
+	src := New().(*httpSource)
+	err := config.Configure(src, map[string]interface{}{
+		"address":           "127.0.0.1:0",
+		"ignoreOutput":      true,
+		"treatOutputAsBody": true,
+	})
+	url := fmt.Sprintf("http://%s/", src.Listener.Addr().String())
+
 	if err != nil {
-		t.Fatalf("NewRequest returned error: %#v", err)
+		t.Fatalf("config.Configure returned an error: %+v", err)
 	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	rr := httptest.NewRecorder()
-	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
-		return map[string]interface{}{
-			"body": `{"a": "b"}`,
-			"headers": map[string]string{
-				"content-type":    "application/json",
-				"x-custom-header": "custom header value",
-			},
-			"statusCode": http.StatusCreated,
-		}, nil
-	})
+	go func() {
+		src.Serve(ctx, fn.NewFnFromInvokeFunc(func(ctx context.Context, input interface{}) (interface{}, error) {
+			return input.(map[string]interface{})["body"], nil
+		}))
+	}()
 
-	config := &httpSourceConfig{
-		Addr:         ":8080",
-		IgnoreOutput: true,
+	body := "some value"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		t.Fatalf("error posting: %+v", err)
 	}
 
-	handler := http.HandlerFunc(makeHandler(ctx, f, config))
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusCreated {
-		t.Errorf("handler returned non-OK status code: %d", rr.Code)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll returned error: %+v", err)
 	}
 
 	want := ""
-	got := rr.Body.String()
+	got := string(respBody)
 
 	if got != want {
-		t.Errorf("response output: want %q, got %q", want, got)
+		t.Errorf("unexpected result: want %q, got %q", want, got)
+	}
+
+	wantStatus := http.StatusOK
+	gotStatus := resp.StatusCode
+	if wantStatus != gotStatus {
+		t.Errorf("incorrect status code: want %d, got %d", wantStatus, gotStatus)
 	}
 }
 
-func TestHandler_defaultHeaders(t *testing.T) {
-	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
+func TestServe_fnReturnsInvalidMap(t *testing.T) {
+	src := New().(*httpSource)
+	err := config.Configure(src, map[string]interface{}{
+		"address": "127.0.0.1:0",
+	})
+	url := fmt.Sprintf("http://%s/", src.Listener.Addr().String())
+
 	if err != nil {
-		t.Fatalf("NewRequest returned error: %#v", err)
+		t.Fatalf("config.Configure returned an error: %+v", err)
 	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	rr := httptest.NewRecorder()
-	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
-		return map[string]interface{}{
-			"body":       `{"a": "b"}`,
-			"statusCode": http.StatusCreated,
-		}, nil
-	})
+	go func() {
+		src.Serve(ctx, fn.NewFnFromInvokeFunc(func(ctx context.Context, input interface{}) (interface{}, error) {
+			resp := map[string]interface{}{
+				"body":       "some body",
+				"statusCode": "other value",
+			}
 
-	config := &httpSourceConfig{
-		Addr: ":8080",
-		DefaultHeaders: map[string]string{
-			"x-custom-header": "some value",
-		},
+			return resp, nil
+		}))
+	}()
+
+	body := "some value"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		t.Fatalf("error posting: %+v", err)
 	}
 
-	handler := http.HandlerFunc(makeHandler(ctx, f, config))
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusCreated {
-		t.Errorf("handler returned non-OK status code: %d", rr.Code)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll returned error: %+v", err)
 	}
 
-	want := `{"a": "b"}`
-	got := rr.Body.String()
+	want := ""
+	got := string(respBody)
 
 	if got != want {
-		t.Errorf("response output: want %q, got %q", want, got)
+		t.Errorf("unexpected result: want %q, got %q", want, got)
 	}
 
-	wantHeaders := map[string][]string{"X-Custom-Header": {"some value"}}
-	gotHeaders := make(map[string][]string)
-	for k, v := range rr.Result().Header {
-		gotHeaders[k] = v
-	}
-
-	if !reflect.DeepEqual(gotHeaders, wantHeaders) {
-		t.Errorf("headers did not match\nwant: %s\ngot:  %s\n", wantHeaders, gotHeaders)
+	wantStatus := http.StatusInternalServerError
+	gotStatus := resp.StatusCode
+	if wantStatus != gotStatus {
+		t.Errorf("incorrect status code: want %d, got %d", wantStatus, gotStatus)
 	}
 }
 
-func TestHandler_defaultHeadersWithOutputAsBody(t *testing.T) {
-	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
+func TestServe_fnProvidesResponse(t *testing.T) {
+	src := New().(*httpSource)
+	err := config.Configure(src, map[string]interface{}{
+		"address": "127.0.0.1:0",
+	})
+	url := fmt.Sprintf("http://%s/", src.Listener.Addr().String())
+
 	if err != nil {
-		t.Fatalf("NewRequest returned error: %#v", err)
+		t.Fatalf("config.Configure returned an error: %+v", err)
 	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	rr := httptest.NewRecorder()
-	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
-		return "fn output", nil
-	})
+	go func() {
+		src.Serve(ctx, fn.NewFnFromInvokeFunc(func(ctx context.Context, input interface{}) (interface{}, error) {
+			resp := map[string]interface{}{
+				"headers": map[string]string{
+					"Content-Type": "application/custom",
+				},
+				"body":       "some body",
+				"statusCode": http.StatusNotFound,
+			}
 
-	config := &httpSourceConfig{
-		Addr: ":8080",
-		DefaultHeaders: map[string]string{
-			"content-type": "application/json",
-		},
-		TreatOutputAsBody: true,
+			return resp, nil
+		}))
+	}()
+
+	body := "some value"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		t.Fatalf("error posting: %+v", err)
 	}
 
-	handler := http.HandlerFunc(makeHandler(ctx, f, config))
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned non-OK status code: %d", rr.Code)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll returned error: %+v", err)
 	}
 
-	want := "fn output"
-	got := rr.Body.String()
+	want := "some body"
+	got := string(respBody)
 
 	if got != want {
-		t.Errorf("response output: want %q, got %q", want, got)
+		t.Errorf("unexpected result: want %q, got %q", want, got)
 	}
 
-	wantHeaders := map[string][]string{"Content-Type": {"application/json"}}
-	gotHeaders := make(map[string][]string)
-	for k, v := range rr.Result().Header {
-		gotHeaders[k] = v
+	wantContentType := "application/custom"
+	gotContentType := resp.Header.Get("Content-Type")
+	if gotContentType != wantContentType {
+		t.Errorf("incorrect content-type: want %q, got %q", wantContentType, gotContentType)
 	}
 
-	if !reflect.DeepEqual(gotHeaders, wantHeaders) {
-		t.Errorf("headers did not match\nwant: %s\ngot:  %s\n", wantHeaders, gotHeaders)
+	wantStatus := http.StatusNotFound
+	gotStatus := resp.StatusCode
+	if wantStatus != gotStatus {
+		t.Errorf("incorrect status code: want %d, got %d", wantStatus, gotStatus)
 	}
 }
 
-func TestHandler_treatOutputAsBodyWithInteger(t *testing.T) {
-	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
+func TestServe_fnReturnsError(t *testing.T) {
+	src := New().(*httpSource)
+	err := config.Configure(src, map[string]interface{}{
+		"address": "127.0.0.1:0",
+	})
+	url := fmt.Sprintf("http://%s/", src.Listener.Addr().String())
+
 	if err != nil {
-		t.Fatalf("NewRequest returned error: %#v", err)
+		t.Fatalf("config.Configure returned an error: %+v", err)
 	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	rr := httptest.NewRecorder()
-	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
-		return 1, nil
-	})
+	go func() {
+		src.Serve(ctx, fn.NewFnFromInvokeFunc(func(ctx context.Context, input interface{}) (interface{}, error) {
+			return nil, errors.New("some error")
+		}))
+	}()
 
-	config := &httpSourceConfig{
-		Addr:              ":8080",
-		TreatOutputAsBody: true,
+	body := "some value"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		t.Fatalf("error posting: %+v", err)
 	}
 
-	handler := http.HandlerFunc(makeHandler(ctx, f, config))
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned non-OK status code: %d", rr.Code)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll returned error: %+v", err)
 	}
 
-	want := "1"
-	got := rr.Body.String()
+	want := "some error"
+	got := string(respBody)
 
 	if got != want {
-		t.Errorf("response output: want %q, got %q", want, got)
+		t.Errorf("unexpected result: want %q, got %q", want, got)
+	}
+
+	wantStatus := http.StatusInternalServerError
+	gotStatus := resp.StatusCode
+	if wantStatus != gotStatus {
+		t.Errorf("incorrect status code: want %d, got %d", wantStatus, gotStatus)
 	}
 }
 
-func TestHandler_error(t *testing.T) {
-	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
+func TestServe_nonMapOutput(t *testing.T) {
+	src := New().(*httpSource)
+	err := config.Configure(src, map[string]interface{}{
+		"address": "127.0.0.1:0",
+	})
+	url := fmt.Sprintf("http://%s/", src.Listener.Addr().String())
+
 	if err != nil {
-		t.Fatalf("NewRequest returned error: %#v", err)
+		t.Fatalf("config.Configure returned an error: %+v", err)
 	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	rr := httptest.NewRecorder()
-	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
-		return nil, errors.New("some error")
-	})
+	go func() {
+		src.Serve(ctx, fn.NewFnFromInvokeFunc(func(ctx context.Context, input interface{}) (interface{}, error) {
+			return 3, nil
+		}))
+	}()
 
-	config := &httpSourceConfig{}
+	body := "some value"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		t.Fatalf("error posting: %+v", err)
+	}
 
-	handler := http.HandlerFunc(makeHandler(ctx, f, config))
+	respBody, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll returned error: %+v", err)
+	}
 
-	handler.ServeHTTP(rr, req)
+	want := ""
+	got := string(respBody)
 
-	if status := rr.Code; status != http.StatusInternalServerError {
-		t.Errorf("return code: want %d, got %d", http.StatusInternalServerError, status)
+	if got != want {
+		t.Errorf("unexpected result: want %q, got %q", want, got)
+	}
+
+	wantStatus := http.StatusInternalServerError
+	gotStatus := resp.StatusCode
+	if wantStatus != gotStatus {
+		t.Errorf("incorrect status code: want %d, got %d", wantStatus, gotStatus)
 	}
 }
 
-func TestHandler_invalidReturnType(t *testing.T) {
-	req, err := http.NewRequest("POST", "/", strings.NewReader("some input"))
+func TestServe_base64Encode(t *testing.T) {
+	src := New().(*httpSource)
+	err := config.Configure(src, map[string]interface{}{
+		"address":           "127.0.0.1:0",
+		"base64EncodeBody":  true,
+		"treatOutputAsBody": true,
+	})
 	if err != nil {
-		t.Fatalf("NewRequest returned error: %#v", err)
+		t.Fatalf("config.Configure returned an error: %+v", err)
 	}
+
+	url := fmt.Sprintf("http://%s/", src.Listener.Addr().String())
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	rr := httptest.NewRecorder()
-	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
-		return 1234, nil
+	go func() {
+		src.Serve(ctx, fn.NewFnFromInvokeFunc(func(ctx context.Context, input interface{}) (interface{}, error) {
+			return input.(map[string]interface{})["body"], nil
+		}))
+	}()
+
+	body := "hello world"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		t.Fatalf("error posting: %+v", err)
+	}
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll returned error: %+v", err)
+	}
+
+	want := "aGVsbG8gd29ybGQ="
+	got := string(respBody)
+
+	if got != want {
+		t.Errorf("unexpected result: want %q, got %q", want, got)
+	}
+
+	wantStatus := http.StatusOK
+	gotStatus := resp.StatusCode
+	if wantStatus != gotStatus {
+		t.Errorf("incorrect status code: want %d, got %d", wantStatus, gotStatus)
+	}
+}
+
+func TestServe_gracefulShutdown(t *testing.T) {
+	src := New().(*httpSource)
+	err := config.Configure(src, map[string]interface{}{
+		"address":             "127.0.0.1:0",
+		"treatOutputAsBody":   true,
+		"shutdownGracePeriod": "2s",
 	})
+	if err != nil {
+		t.Fatalf("config.Configure returned an error: %+v", err)
+	}
 
-	config := &httpSourceConfig{}
+	doneCh := make(chan interface{}, 1)
 
-	handler := http.HandlerFunc(makeHandler(ctx, f, config))
+	ctx, cancel := context.WithCancel(context.Background())
 
-	handler.ServeHTTP(rr, req)
+	go func() {
+		src.Serve(ctx, identity.New())
+		doneCh <- "done"
+	}()
 
-	if status := rr.Code; status != http.StatusInternalServerError {
-		t.Errorf("return code: want %d, got %d", http.StatusInternalServerError, status)
+	<-time.After(50 * time.Millisecond)
+	cancel()
+
+	select {
+	case <-time.After(3 * time.Second):
+		t.Error("server did not exit within the grace period")
+	case <-doneCh:
+		break
 	}
 }
