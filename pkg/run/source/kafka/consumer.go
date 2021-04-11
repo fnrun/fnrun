@@ -8,13 +8,11 @@ import (
 )
 
 type consumer struct {
-	ready chan bool
-	ctx   context.Context
-	f     fn.Fn
+	ctx context.Context
+	f   fn.Fn
 }
 
 func (consumer *consumer) Setup(sarama.ConsumerGroupSession) error {
-	close(consumer.ready)
 	return nil
 }
 
@@ -28,7 +26,7 @@ func (consumer *consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 
 		_, err := consumer.f.Invoke(consumer.ctx, input)
 		if err != nil {
-			return err
+			return err // TODO This MIGHT be wrong!
 		}
 		session.MarkMessage(message, "")
 	}
