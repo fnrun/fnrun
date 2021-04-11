@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -172,6 +173,7 @@ type testConsumerGroupHandler struct {
 	InputCh chan *sarama.ConsumerMessage
 	errorCh chan error
 	closed  bool
+	mutex   sync.Mutex
 }
 
 func (cg *testConsumerGroupHandler) Consume(ctx context.Context, topics []string, handler sarama.ConsumerGroupHandler) error {
@@ -191,6 +193,9 @@ func (cg *testConsumerGroupHandler) Errors() <-chan error {
 }
 
 func (cg *testConsumerGroupHandler) Close() error {
+	cg.mutex.Lock()
+	defer cg.mutex.Unlock()
+
 	if !cg.closed {
 		close(cg.InputCh)
 		close(cg.errorCh)
