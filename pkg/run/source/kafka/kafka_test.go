@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -106,6 +107,50 @@ func TestServe(t *testing.T) {
 
 	if !reflect.DeepEqual(gotInput, wantInput) {
 		t.Errorf("unexpected input value: want %#v, got %#v", wantInput, gotInput)
+	}
+}
+
+func TestServe_withFnError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	expectedErr := errors.New("expected error")
+
+	client := newTestConsumerGroupHandler()
+	k := &kafkaSource{
+		client: client,
+	}
+
+	f := fn.NewFnFromInvokeFunc(func(ctx context.Context, input interface{}) (interface{}, error) {
+		cancel()
+		return nil, expectedErr
+	})
+
+	client.InputCh <- newConsumerMessage("my-topic", []byte("some key"), []byte("some value"))
+	err := k.Serve(ctx, f)
+
+	if err != expectedErr {
+		t.Errorf("Serve did not returned expected error: want %+v, got %+v", expectedErr, err)
+	}
+}
+
+func TestServe_withFnError_ignoreErrors(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	client := newTestConsumerGroupHandler()
+	k := &kafkaSource{
+		IgnoreErrors: true,
+		client:       client,
+	}
+
+	f := fn.NewFnFromInvokeFunc(func(ctx context.Context, input interface{}) (interface{}, error) {
+		cancel()
+		return nil, errors.New("unexpected error")
+	})
+
+	client.InputCh <- newConsumerMessage("my-topic", []byte("some key"), []byte("some value"))
+	err := k.Serve(ctx, f)
+
+	if err != nil {
+		t.Errorf("Serve returned error: %+v", err)
 	}
 }
 

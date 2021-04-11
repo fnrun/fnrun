@@ -5,8 +5,6 @@ package kafka
 
 import (
 	"context"
-	"log"
-	"sync"
 
 	"github.com/Shopify/sarama"
 	"github.com/fnrun/fnrun/pkg/fn"
@@ -16,12 +14,13 @@ import (
 )
 
 type kafkaSource struct {
-	Group    string
-	Brokers  []string
-	Topics   []string
-	Oldest   bool
-	Assignor sarama.BalanceStrategy
-	Version  sarama.KafkaVersion `mapstructure:",omitempty"`
+	Group        string
+	Brokers      []string
+	Topics       []string
+	Oldest       bool
+	Assignor     sarama.BalanceStrategy
+	Version      sarama.KafkaVersion `mapstructure:",omitempty"`
+	IgnoreErrors bool
 
 	client sarama.ConsumerGroup
 }
@@ -54,29 +53,30 @@ func (k *kafkaSource) Serve(ctx context.Context, f fn.Fn) error {
 	}
 
 	consumer := &consumer{
-		ctx: ctx,
-		f:   f,
+		ctx:          ctx,
+		f:            f,
+		ignoreErrors: k.IgnoreErrors,
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
+	errorCh := make(chan error, 1)
+
 	go func() {
-		defer wg.Done()
+		defer close(errorCh)
+		defer k.client.Close()
+
 		for {
 			if ctx.Err() != nil {
 				return
 			}
 
 			if err := k.client.Consume(ctx, k.Topics, consumer); err != nil {
-				log.Fatalf("Error from consumer: %v", err)
+				errorCh <- err
+				return
 			}
 		}
 	}()
 
-	<-ctx.Done()
-	wg.Wait()
-
-	return k.client.Close()
+	return <-errorCh
 }
 
 func (k *kafkaSource) RequiresConfig() bool {
