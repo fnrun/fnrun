@@ -13,6 +13,7 @@ import (
 	"github.com/fnrun/fnrun/pkg/run/fn/identity"
 	fnloader "github.com/fnrun/fnrun/pkg/run/fn/loader"
 	"github.com/fnrun/fnrun/pkg/run/fn/pool"
+	"github.com/fnrun/fnrun/pkg/run/middleware/circuitbreaker"
 	"github.com/fnrun/fnrun/pkg/run/middleware/debug"
 	"github.com/fnrun/fnrun/pkg/run/middleware/jq"
 	"github.com/fnrun/fnrun/pkg/run/middleware/json"
@@ -46,6 +47,7 @@ func main() {
 	registry.RegisterFnWithRegistry("fnrun.fn/pool", pool.New)
 	registry.RegisterFnWithRegistry("fn", fnloader.New)
 
+	registry.RegisterMiddleware("fnrun.middleware/circuitbreaker", circuitbreaker.New)
 	registry.RegisterMiddleware("fnrun.middleware/debug", debug.New)
 	registry.RegisterMiddleware("fnrun.middleware/jq", jq.New)
 	registry.RegisterMiddleware("fnrun.middleware/json", json.New)
