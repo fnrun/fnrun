@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2021-04-14
+### Added
+- `shutdownGracePeriod` option to http source
+- `ignoreErrors` to kafka source
+- cron source
+- kafka middleware
+- circuitbreaker middleware
+
+### Changed
+- **Breaking:** rename key in Lambda source input from `body` to `event`
+- **Breaking:** rename the Lambda source `jsonDeserializeBody` configuration
+option to `jsonDeserializeEvent`
+
 ## [0.1.0] - 2021-03-07
 ### Added
 - Fn, Source, and Middleware interfaces.
