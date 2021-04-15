@@ -16,9 +16,9 @@ package sqs
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/fnrun/fnrun/pkg/fn"
 	"github.com/fnrun/fnrun/pkg/run"
 	"github.com/mitchellh/mapstructure"
@@ -30,8 +30,8 @@ type sqsSource struct {
 
 type sqsSourceConfig struct {
 	QueueName string `mapstructure:"queue"`
-	Timeout   int64  `mapstructure:"timeout,omitempty"`
-	BatchSize int64  `mapstructure:"batchSize,omitempty"`
+	Timeout   int32  `mapstructure:"timeout,omitempty"`
+	BatchSize int32  `mapstructure:"batchSize,omitempty"`
 }
 
 func (*sqsSource) RequiresConfig() bool {
@@ -48,13 +48,14 @@ func (s *sqsSource) ConfigureMap(configMap map[string]interface{}) error {
 }
 
 func (s *sqsSource) Serve(ctx context.Context, f fn.Fn) error {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return err
+	}
 
-	svc := sqs.New(sess)
+	svc := sqs.NewFromConfig(cfg)
 
-	urlResult, err := svc.GetQueueUrl(&sqs.GetQueueUrlInput{
+	urlResult, err := svc.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
 		QueueName: &s.config.QueueName,
 	})
 
@@ -65,16 +66,16 @@ func (s *sqsSource) Serve(ctx context.Context, f fn.Fn) error {
 	queueURL := urlResult.QueueUrl
 
 	for {
-		msgResult, err := svc.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
-			AttributeNames: []*string{
-				aws.String(sqs.MessageSystemAttributeNameSentTimestamp),
+		msgResult, err := svc.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
+			AttributeNames: []types.QueueAttributeName{
+				types.QueueAttributeName(types.MessageSystemAttributeNameSentTimestamp),
 			},
-			MessageAttributeNames: []*string{
-				aws.String(sqs.QueueAttributeNameAll),
+			MessageAttributeNames: []string{
+				string(types.QueueAttributeNameAll),
 			},
 			QueueUrl:            queueURL,
-			MaxNumberOfMessages: &s.config.BatchSize,
-			VisibilityTimeout:   &s.config.Timeout,
+			MaxNumberOfMessages: s.config.BatchSize,
+			VisibilityTimeout:   s.config.Timeout,
 		})
 
 		if err != nil {
@@ -82,12 +83,12 @@ func (s *sqsSource) Serve(ctx context.Context, f fn.Fn) error {
 		}
 
 		for _, message := range msgResult.Messages {
-			_, err = f.Invoke(ctx, createInput(message))
+			_, err = f.Invoke(ctx, createInput(&message))
 			if err != nil {
 				continue
 			}
 
-			_, err = svc.DeleteMessageWithContext(ctx, &sqs.DeleteMessageInput{
+			_, err = svc.DeleteMessage(ctx, &sqs.DeleteMessageInput{
 				QueueUrl:      queueURL,
 				ReceiptHandle: message.ReceiptHandle,
 			})
@@ -98,7 +99,7 @@ func (s *sqsSource) Serve(ctx context.Context, f fn.Fn) error {
 	}
 }
 
-func createInput(message *sqs.Message) map[string]interface{} {
+func createInput(message *types.Message) map[string]interface{} {
 	input := make(map[string]interface{})
 
 	input["id"] = *message.MessageId
