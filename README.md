@@ -40,5 +40,14 @@ provides a runner called fnrunner that provides common sources, middleware, and
 fns. However, it is also possible to create custom runners that include new 
 components designed to meet the specific needs of your environment.
 
+## Documentation
+- [Quick Start](https://fnrun.dev/docs/getting-started/quick-start/): get up and
+running in 5 minutes
+- [Tutorial](https://fnrun.dev/tutorial/introduction/): a guided tour of all
+fnrun has to offer
+- [Reference documentation](https://fnrun.dev/docs/getting-started/introduction/):
+docs on all sources, middleware, and fns that ship with fnrunner
+
+
 ## License
 fnrun is released under the [MIT License](LICENSE).
