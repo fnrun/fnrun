@@ -17,6 +17,7 @@ import (
 	"github.com/fnrun/fnrun/pkg/run/middleware/debug"
 	"github.com/fnrun/fnrun/pkg/run/middleware/jq"
 	"github.com/fnrun/fnrun/pkg/run/middleware/json"
+	kafkamiddleware "github.com/fnrun/fnrun/pkg/run/middleware/kafka"
 	"github.com/fnrun/fnrun/pkg/run/middleware/key"
 	"github.com/fnrun/fnrun/pkg/run/middleware/pipeline"
 	"github.com/fnrun/fnrun/pkg/run/middleware/timeout"
@@ -51,6 +52,7 @@ func main() {
 	registry.RegisterMiddleware("fnrun.middleware/debug", debug.New)
 	registry.RegisterMiddleware("fnrun.middleware/jq", jq.New)
 	registry.RegisterMiddleware("fnrun.middleware/json", json.New)
+	registry.RegisterMiddleware("fnrun.middleware/kafka", kafkamiddleware.New)
 	registry.RegisterMiddleware("fnrun.middleware/key", key.New)
 	registry.RegisterMiddleware("fnrun.middleware/timeout", timeout.New)
 	registry.RegisterMiddlewareWithRegistry("middleware", pipeline.NewWithRegistry)
