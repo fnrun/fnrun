@@ -71,8 +71,10 @@ func main() {
 		panic(err)
 	}
 
+	configStr := os.ExpandEnv(string(configBytes))
+
 	var configMap map[string]interface{}
-	err = yaml.Unmarshal(configBytes, &configMap)
+	err = yaml.Unmarshal([]byte(configStr), &configMap)
 	if err != nil {
 		panic(err)
 	}
