@@ -84,9 +84,6 @@ func (s *service) start() error {
 		for scanner.Scan() {
 			s.outputChannel <- scanner.Text()
 		}
-		if err := scanner.Err(); err != nil {
-			s.errorChannel <- err
-		}
 	}()
 
 	go func() {
