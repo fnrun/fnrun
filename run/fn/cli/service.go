@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"sync"
 
@@ -30,7 +29,9 @@ func (s *service) kill() error {
 	// If the process has completed before we kill it, Kill() will return
 	// ErrProcessDone. We can safely ignore this particular error because it
 	// means the system is already in the desired state.
-	if err != nil && err != os.ErrProcessDone {
+	// NOTE: os.ErrProcessDone is defined in 1.16. In the meantime, we compare its
+	// error message.
+	if err != nil && err.Error() != "os: process already finished" {
 		return err
 	}
 	return nil
