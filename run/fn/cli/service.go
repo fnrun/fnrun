@@ -22,20 +22,18 @@ type service struct {
 	locker        sync.RWMutex
 }
 
-func (s *service) setAlive(alive bool) error {
-	s.locker.Lock()
-	defer s.locker.Unlock()
+func (s *service) kill() error {
+	s.alive = false
 
-	if s.alive == alive {
-		return nil
+	err := s.cmd.Process.Kill()
+	// If the process has completed before we kill it, Kill() will return
+	// ErrProcessDone. We can safely ignore this particular error because it
+	// means the system is already in the desired state.
+	// NOTE: os.ErrProcessDone is defined in 1.16. In the meantime, we compare its
+	// error message.
+	if err != nil && err.Error() != "os: process already finished" {
+		return err
 	}
-
-	s.alive = alive
-
-	if !alive {
-		return s.cmd.Process.Kill()
-	}
-
 	return nil
 }
 
@@ -75,7 +73,7 @@ func (s *service) start() error {
 
 	s.cmd = cmd
 	s.stdin = stdin
-	s.setAlive(true)
+	s.alive = true
 
 	go scanAndLogMessages(stderr)
 
@@ -84,24 +82,17 @@ func (s *service) start() error {
 		for scanner.Scan() {
 			s.outputChannel <- scanner.Text()
 		}
-		if err := scanner.Err(); err != nil {
-			s.errorChannel <- err
-		}
 	}()
 
 	go func() {
 		err := cmd.Wait()
-		s.setAlive(false)
+		s.alive = false
 		if err != nil {
 			s.errorChannel <- err
 		}
 	}()
 
 	return nil
-}
-
-func (s *service) kill() error {
-	return s.setAlive(false)
 }
 
 func (s *service) Invoke(ctx context.Context, input interface{}) (interface{}, error) {
