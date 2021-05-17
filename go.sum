@@ -2,7 +2,6 @@ github.com/Shopify/sarama v1.29.0 h1:ARid8o8oieau9XrHI55f/L3EoRAhm9px6sonbD7yuUE
 github.com/Shopify/sarama v1.29.0/go.mod h1:2QpgD79wpdAESqNQMxNc0KYMkycd4slxGdV3TWSVqrU=
 github.com/Shopify/toxiproxy v2.1.4+incompatible h1:TKdv8HiTLgE5wdJuEML90aBgNWsokNbMijUGhmcoBJc=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
-github.com/aws/aws-sdk-go-v2 v1.4.0/go.mod h1:tI4KhsR5VkzlUa2DZAdwx7wCAYGwkZZ1H31PYrBFx1w=
 github.com/aws/aws-sdk-go-v2 v1.5.0 h1:o0TprBiEkqtMGD2Ira1VCq3zwWej256zHLSRcd+cxUA=
 github.com/aws/aws-sdk-go-v2 v1.5.0/go.mod h1:tI4KhsR5VkzlUa2DZAdwx7wCAYGwkZZ1H31PYrBFx1w=
 github.com/aws/aws-sdk-go-v2/config v1.2.0 h1:3JVWs+ilru3/5Zq6KbuQj8aqp7DW+Uw/wv6gCYZ2UnI=
@@ -13,8 +12,8 @@ github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.1.0 h1:EVNLR3OULDnvp92ISADQwZwV
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.1.0/go.mod h1:GOKx1449nzMoUdTKrP41RsPn1hogOaxb+5MaoOiZgqc=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.1.0 h1:i+cyzgQbk02N3pbwBTwjOChoDuIxsGdE6ucD2ZLVnJQ=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.1.0/go.mod h1:mruB7K2oMCoU0WhUeTV1CxpqoP7Q0N1uo5TXH4r2dZA=
-github.com/aws/aws-sdk-go-v2/service/sqs v1.3.2 h1:h+MQ5ak5pvIaQU2U7js7/jmU6s8cuPt9tKuSF7tXzYE=
-github.com/aws/aws-sdk-go-v2/service/sqs v1.3.2/go.mod h1:azU2fdsGG7VXFyFLUT5LhN19DjGIJIbUFacx29jR6H4=
+github.com/aws/aws-sdk-go-v2/service/sqs v1.4.0 h1:w5EaYjYiwiYivcab1/Xv9T7UriNqT4XpbI3mky0MAZ8=
+github.com/aws/aws-sdk-go-v2/service/sqs v1.4.0/go.mod h1:p/0QcWboH0jsZIAJjDR6MwoCfhXQpAZ3Q5ixVRdjfGk=
 github.com/aws/aws-sdk-go-v2/service/sso v1.2.0 h1:6cTVa8anc914VgJzca8Jd0ewA7Y5fbEFheXqidum0tg=
 github.com/aws/aws-sdk-go-v2/service/sso v1.2.0/go.mod h1:5qnaL4AtNElFr+a5mdkvD+89jGwpTVyWWX5W/eLzmes=
 github.com/aws/aws-sdk-go-v2/service/sts v1.4.0 h1:pcnLXm4eMWUgqfbjsRyeSz90CKunJUmre+trKJx/FAk=
