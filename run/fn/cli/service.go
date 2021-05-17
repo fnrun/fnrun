@@ -23,7 +23,9 @@ type service struct {
 }
 
 func (s *service) kill() error {
+	s.locker.Lock()
 	s.alive = false
+	s.locker.Unlock()
 
 	err := s.cmd.Process.Kill()
 	// If the process has completed before we kill it, Kill() will return
@@ -86,7 +88,9 @@ func (s *service) start() error {
 
 	go func() {
 		err := cmd.Wait()
+		s.locker.Lock()
 		s.alive = false
+		s.locker.Unlock()
 		if err != nil {
 			s.errorChannel <- err
 		}
