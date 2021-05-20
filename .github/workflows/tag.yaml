@@ -1,0 +1,41 @@
+name: Create tag 
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The tag name (e.g., `v0.1.0`)'
+        required: true
+
+jobs:
+  create_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install Changie
+        run: go get -u github.com/miniscruff/changie
+
+      - name: Create Changelog
+        run: |
+          changie batch ${{ github.event.inputs.version }}
+          changie merge
+          git add CHANGELOG.md changes/
+          git commit -m "Update changelog for version ${{ github.event.inputs.version }}"
+          git push origin main
+
+      - name: Create tag
+        run: |
+          git tag -a ${{ github.event.inputs.version}} -m "`cat ./changes/${{ github.event.inputs.version }}.md`"
+          git push origin ${{ github.event.inputs.version }}
