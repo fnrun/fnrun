@@ -1,0 +1,2 @@
+kind: Changed
+body: '**Breaking** moved source out of `pkg` folder into root folder'
