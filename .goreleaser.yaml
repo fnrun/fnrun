@@ -1,0 +1,50 @@
+project_name: fnrunner
+before:
+  hooks:
+    - go get github.com/google/go-licenses
+    - go-licenses save ./... --save_path="licenses" --force
+    - tar -zcvf licenses.tar.gz licenses
+    - go mod tidy
+builds:
+  - env:
+      - CGO_ENABLED=0
+    flags:
+      - -v
+      - -tags=netgo
+    ldflags:
+      - -s -w -extldflags "-static"
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 7
+    main: ./cmd/fnrunner/main.go
+
+  - binary: fnrunner
+    id: fnrunner_darwin
+    ldflags: -s -w -extldflags "-static"
+    env:
+      - CGO_ENABLED=1
+      - CC=o64-clang
+      - CXX=o64-clang++
+    flags: -v
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/fnrunner/main.go
+
+archives:
+  - files:
+      - README.md
+      - CHANGELOG.md
+      - licenses.tar.gz
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  skip: true
