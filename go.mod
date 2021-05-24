@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/Shopify/sarama v1.29.0
 	github.com/aws/aws-sdk-go-v2/config v1.3.0
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.4.0
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.4.1
 	github.com/itchyny/gojq v0.12.3
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/pkg/errors v0.9.1
