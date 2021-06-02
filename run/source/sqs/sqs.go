@@ -16,6 +16,7 @@ package sqs
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
@@ -29,9 +30,12 @@ type sqsSource struct {
 }
 
 type sqsSourceConfig struct {
-	QueueName string `mapstructure:"queue"`
-	Timeout   int32  `mapstructure:"timeout,omitempty"`
-	BatchSize int32  `mapstructure:"batchSize,omitempty"`
+	QueueName     string `mapstructure:"queue"`
+	Timeout       int32  `mapstructure:"timeout,omitempty"`
+	BatchSize     int32  `mapstructure:"batchSize,omitempty"`
+	EndpointURL   string `mapstructure:"endpointURL,omitempty"`
+	PartitionID   string `mapstructure:"partitionID,omitempty"`
+	SigningRegion string `mapstructure:"signingRegion,omitempty"`
 }
 
 func (*sqsSource) RequiresConfig() bool {
@@ -51,6 +55,16 @@ func (s *sqsSource) Serve(ctx context.Context, f fn.Fn) error {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return err
+	}
+	if s.config.EndpointURL != "" {
+		customResolver := aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
+			return aws.Endpoint{
+				PartitionID:   s.config.PartitionID,
+				URL:           s.config.EndpointURL,
+				SigningRegion: s.config.SigningRegion,
+			}, nil
+		})
+		cfg.EndpointResolver = customResolver
 	}
 
 	svc := sqs.NewFromConfig(cfg)
@@ -114,8 +128,10 @@ func createInput(message *types.Message) map[string]interface{} {
 func New() run.Source {
 	return &sqsSource{
 		config: &sqsSourceConfig{
-			Timeout:   30,
-			BatchSize: 1,
+			Timeout:       30,
+			BatchSize:     1,
+			PartitionID:   "aws",
+			SigningRegion: "us-east-1",
 		},
 	}
 }
