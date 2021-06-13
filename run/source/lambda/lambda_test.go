@@ -49,7 +49,7 @@ func TestServe_nextURLReturnsError(t *testing.T) {
 
 	err = src.Serve(context.Background(), identity.New())
 
-	want := "connect: connection refused"
+	want := "refused"
 	got := err.Error()
 
 	if !strings.Contains(got, want) {
