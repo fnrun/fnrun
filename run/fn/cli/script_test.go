@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -62,8 +63,8 @@ func TestScript_Invoke_crashingProcess(t *testing.T) {
 }
 
 func TestScript_Invoke_logsStderr(t *testing.T) {
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
+	buf := &safeBuffer{}
+	log.SetOutput(buf)
 	log.SetFlags(0)
 
 	commandStr := fmt.Sprintf("%s -test.run=%s", os.Args[0], "Test_HelperScript")
@@ -84,6 +85,30 @@ func TestScript_Invoke_logsStderr(t *testing.T) {
 	if got != want {
 		t.Errorf("did not capture log statement: want %q, got %q", want, got)
 	}
+}
+
+// -----------------------------------------------------------------------------
+
+// safeBuffer provides a buffer with synchronizations around reads and writes.
+// This is needed because in the tests in which we provide a buffer for a logger
+// to write into, we need to make sure that the reads and writes do not collide.
+type safeBuffer struct {
+	buf bytes.Buffer
+	mut sync.RWMutex
+}
+
+func (s *safeBuffer) Write(p []byte) (n int, err error) {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	return s.buf.Write(p)
+}
+
+func (s *safeBuffer) String() string {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	return s.buf.String()
 }
 
 // -----------------------------------------------------------------------------
