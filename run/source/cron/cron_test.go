@@ -17,8 +17,14 @@ func nullInvokeFunc(context.Context, interface{}) (interface{}, error) {
 func TestInvoke(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
+	done := false
 
 	f := fn.NewFnFromInvokeFunc(func(context.Context, interface{}) (interface{}, error) {
+		if done {
+			return nil, nil
+		}
+
+		done = true
 		wg.Done()
 		return nil, nil
 	})
