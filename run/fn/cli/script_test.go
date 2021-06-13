@@ -24,7 +24,7 @@ func TestScript_Invoke(t *testing.T) {
 
 	s := newScript(baseCmd)
 
-	iterations := 10
+	iterations := 3
 	for i := 0; i < iterations; i++ {
 		output, err := s.Invoke(context.Background(), "some input")
 		if err != nil {
