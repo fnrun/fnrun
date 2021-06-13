@@ -28,7 +28,7 @@ func newSubprocessFn(t *testing.T) fn.Fn {
 func TestService_Invoke(t *testing.T) {
 	f := newSubprocessFn(t)
 
-	iterations := 1000
+	iterations := 10
 	for i := 0; i < iterations; i++ {
 		output, err := f.Invoke(context.Background(), "some input")
 		if err != nil {
@@ -80,7 +80,7 @@ func TestService_Invoke_subprocessExitsUnsuccessfully(t *testing.T) {
 
 func TestService_Invoke_subprocessDoesNotCrash(t *testing.T) {
 	f := newSubprocessFn(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	output, err := f.Invoke(ctx, "first time")

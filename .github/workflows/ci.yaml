@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest, macOS-latest, windows-latest]
         go: [ '1.15', '1.16' ]
     name: Test with Go ${{ matrix.go }} on ${{ matrix.os }}
     steps:

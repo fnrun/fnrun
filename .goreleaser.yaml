@@ -37,6 +37,21 @@ builds:
       - arm64
     main: ./cmd/fnrunner/main.go
 
+  - binary: fnrunner
+    id: fnrunner_windows
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -v
+      - -tags=netgo
+    ldflags:
+      - -s -w -extldflags "-static"
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/fnrunner/main.go
+
 archives:
   - files:
       - README.md
