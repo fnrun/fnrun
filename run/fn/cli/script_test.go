@@ -14,7 +14,7 @@ import (
 )
 
 func TestScript_Invoke(t *testing.T) {
-	commandStr := fmt.Sprintf("%s -test.run=%s", os.Args[0], "Test_HelperScript")
+	commandStr := fmt.Sprintf("%s -test.run=%s", os.Args[0], exeName("Test_HelperScript"))
 	env := []string{"GO_RUNNING_SUBPROCESS=1"}
 
 	baseCmd, err := createBaseCmd(commandStr, env...)
@@ -43,7 +43,7 @@ func TestScript_Invoke(t *testing.T) {
 }
 
 func TestScript_Invoke_crashingProcess(t *testing.T) {
-	commandStr := fmt.Sprintf("%s -test.run=%s", os.Args[0], "Test_HelperScript")
+	commandStr := fmt.Sprintf("%s -test.run=%s", os.Args[0], exeName("Test_HelperScript"))
 	env := []string{"GO_RUNNING_SUBPROCESS=1"}
 
 	baseCmd, err := createBaseCmd(commandStr, env...)
@@ -67,7 +67,7 @@ func TestScript_Invoke_logsStderr(t *testing.T) {
 	log.SetOutput(buf)
 	log.SetFlags(0)
 
-	commandStr := fmt.Sprintf("%s -test.run=%s", os.Args[0], "Test_HelperScript")
+	commandStr := fmt.Sprintf("%s -test.run=%s", os.Args[0], exeName("Test_HelperScript"))
 	env := []string{"GO_RUNNING_SUBPROCESS=1"}
 
 	baseCmd, err := createBaseCmd(commandStr, env...)

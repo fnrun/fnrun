@@ -14,7 +14,7 @@ import (
 func newSubprocessFn(t *testing.T) fn.Fn {
 	t.Helper()
 
-	commandStr := fmt.Sprintf("%s -test.run=%s", os.Args[0], "Test_HelperSubprocess")
+	commandStr := fmt.Sprintf("%s -test.run=%s", os.Args[0], exeName("Test_HelperSubprocess"))
 	env := []string{"GO_RUNNING_SUBPROCESS=1"}
 
 	baseCmd, err := createBaseCmd(commandStr, env...)

@@ -32,7 +32,7 @@ func TestNew_withStringConfiguration(t *testing.T) {
 
 func TestNew_withServiceMapConfiguration(t *testing.T) {
 	configMap := map[string]interface{}{
-		"command": fmt.Sprintf("%s -test.run=%s", os.Args[0], "Test_HelperSubprocess"),
+		"command": fmt.Sprintf("%s -test.run=%s", os.Args[0], exeName("Test_HelperSubprocess")),
 		"env":     []string{"GO_RUNNING_SUBPROCESS=1"},
 	}
 	f := New().(*cliFn)
@@ -49,7 +49,7 @@ func TestNew_withServiceMapConfiguration(t *testing.T) {
 
 func TestNew_withScriptConfiguration(t *testing.T) {
 	configMap := map[string]interface{}{
-		"command": fmt.Sprintf("%s -test.run=%s", os.Args[0], "Test_HelperSubprocess"),
+		"command": fmt.Sprintf("%s -test.run=%s", os.Args[0], exeName("Test_HelperSubprocess")),
 		"env":     []string{"GO_RUNNING_SUBPROCESS=1"},
 		"script":  true,
 	}
@@ -75,7 +75,7 @@ func TestNew_withNilConfig(t *testing.T) {
 
 func TestCliFn_Invoke(t *testing.T) {
 	configMap := map[string]interface{}{
-		"command": fmt.Sprintf("%s -test.run=%s", os.Args[0], "Test_HelperSubprocess"),
+		"command": fmt.Sprintf("%s -test.run=%s", os.Args[0], exeName("Test_HelperSubprocess")),
 		"env":     []string{"GO_RUNNING_SUBPROCESS=1"},
 	}
 	f := New()
