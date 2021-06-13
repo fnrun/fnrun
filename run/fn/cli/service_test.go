@@ -80,7 +80,7 @@ func TestService_Invoke_subprocessExitsUnsuccessfully(t *testing.T) {
 
 func TestService_Invoke_subprocessDoesNotCrash(t *testing.T) {
 	f := newSubprocessFn(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	output, err := f.Invoke(ctx, "first time")
