@@ -15,6 +15,7 @@ import (
 )
 
 func stringIs(t *testing.T, got, want, message string) {
+	t.Helper()
 	if got != want {
 		t.Errorf("%s: want %q, got %q", message, want, got)
 	}
