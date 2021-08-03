@@ -132,7 +132,7 @@ func (m *kafkaMiddleware) Invoke(ctx context.Context, input interface{}, f fn.Fn
 		}
 	}
 
-	if err == nil && m.SuccessTopic != "" {
+	if err == nil && m.SuccessTopic != "" && output != nil {
 		err = sendMessage(m.producer, m.SuccessTopic, output)
 	}
 

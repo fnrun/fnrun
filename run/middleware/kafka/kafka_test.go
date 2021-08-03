@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Shopify/sarama"
 	"github.com/Shopify/sarama/mocks"
 	"github.com/fnrun/fnrun/fn"
 	"github.com/fnrun/fnrun/run/config"
@@ -124,6 +125,27 @@ func TestInvoke(t *testing.T) {
 	}
 }
 
+func TestInvoke_ignoreSuccessOnNilValue(t *testing.T) {
+	producer := &failOnSendSyncProducer{t: t}
+
+	m := kafkaMiddleware{
+		producer:     producer,
+		SuccessTopic: "successTopic",
+		ErrorTopic:   "errorTopic",
+	}
+
+	_, err := m.Invoke(
+		context.Background(),
+		"some value",
+		fn.NewFnFromInvokeFunc(func(_ctx context.Context, _input interface{}) (interface{}, error) {
+			return nil, nil
+		}),
+	)
+	if err != nil {
+		t.Fatalf("Invoke returned error: %+v", err)
+	}
+}
+
 func errorInvokeFunc(ctx context.Context, input interface{}) (interface{}, error) {
 	return nil, errors.New("some error message")
 }
@@ -145,4 +167,25 @@ func TestInvoke_withError(t *testing.T) {
 		"some value",
 		fn.NewFnFromInvokeFunc(errorInvokeFunc),
 	)
+}
+
+// -----------------------------------------------------------------------------
+// Mock SyncProducer that fails on send
+
+type failOnSendSyncProducer struct {
+	t *testing.T
+}
+
+func (sp *failOnSendSyncProducer) SendMessage(msg *sarama.ProducerMessage) (partition int32, offset int64, err error) {
+	sp.t.Fatalf("should not send message")
+	return 0, 0, fmt.Errorf("should not send message")
+}
+
+func (sp *failOnSendSyncProducer) SendMessages(msg []*sarama.ProducerMessage) error {
+	sp.t.Fatalf("should not send messages")
+	return fmt.Errorf("should not send message")
+}
+
+func (sp *failOnSendSyncProducer) Close() error {
+	return nil
 }
