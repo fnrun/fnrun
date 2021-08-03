@@ -1,0 +1,3 @@
+kind: Changed
+body: Allow user to opt out of sending Kafka message via middleware when the output
+  is nil
