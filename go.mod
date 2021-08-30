@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/Shopify/sarama v1.29.1
 	github.com/aws/aws-sdk-go-v2 v1.9.0
-	github.com/aws/aws-sdk-go-v2/config v1.6.1
+	github.com/aws/aws-sdk-go-v2/config v1.7.0
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.7.2
 	github.com/itchyny/gojq v0.12.4
 	github.com/mitchellh/mapstructure v1.4.1
