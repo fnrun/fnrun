@@ -1,3 +1,0 @@
-kind: Changed
-body: '**Breaking** fnrunner restarts after 10s by default after receiving an
-  error while serving'
