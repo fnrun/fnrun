@@ -6,7 +6,7 @@ package servicebus
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log"
 	"time"
 
 	servicebus "github.com/Azure/azure-service-bus-go"
@@ -73,7 +73,7 @@ func (q *queueSource) serveQueue(ctx context.Context, queue *servicebus.Queue, f
 						err := queue.RenewLocks(newCtx, msg)
 
 						if err != nil && running {
-							fmt.Printf("error renewing lock: %+v\n", err)
+							log.Printf("error renewing lock: %+v\n", err)
 							cancel()
 						}
 					}
@@ -84,13 +84,13 @@ func (q *queueSource) serveQueue(ctx context.Context, queue *servicebus.Queue, f
 			running = false
 
 			if err != nil {
-				fmt.Printf("Abandoning due to error: %+v\n", err)
+				log.Printf("Abandoning due to error: %+v\n", err)
 				if err = msg.Abandon(newCtx); err != nil {
-					fmt.Printf("Error abandoning message: %+v\n", err)
+					log.Printf("Error abandoning message: %+v\n", err)
 				}
 			} else {
 				if err = msg.Complete(newCtx); err != nil {
-					fmt.Printf("Error completing message: %+v\n", err)
+					log.Printf("Error completing message: %+v\n", err)
 				}
 			}
 
@@ -114,13 +114,13 @@ func (q *queueSource) serveDLQ(ctx context.Context, queue *servicebus.Queue, f f
 			_, err := f.Invoke(ctx, newInputFromMessage(msg))
 
 			if err != nil {
-				fmt.Printf("Abandoning due to error: %+v\n", err)
+				log.Printf("Abandoning due to error: %+v\n", err)
 				if err = msg.Abandon(ctx); err != nil {
-					fmt.Printf("Error abandoning message: %+v\n", err)
+					log.Printf("Error abandoning message: %+v\n", err)
 				}
 			} else {
 				if err = msg.Complete(ctx); err != nil {
-					fmt.Printf("Error completing message: %+v\n", err)
+					log.Printf("Error completing message: %+v\n", err)
 				}
 			}
 
