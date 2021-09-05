@@ -4,7 +4,9 @@ import (
 	"context"
 	"flag"
 	"io/ioutil"
+	"log"
 	"os"
+	"time"
 
 	"github.com/fnrun/fnrun/run"
 	"github.com/fnrun/fnrun/run/config"
@@ -35,7 +37,11 @@ import (
 
 func main() {
 	var filePath string
+	var autoRestart bool
+	var restartWait time.Duration
 	flag.StringVar(&filePath, "f", "fnrun.yaml", "path to configuration yaml file")
+	flag.BoolVar(&autoRestart, "restart", true, "indication of whether source should automatically restart")
+	flag.DurationVar(&restartWait, "restart-wait", 10*time.Second, "the amount of time to wait before automatically restarting")
 	flag.Parse()
 
 	if envFilePath := os.Getenv("CONFIG_FILE"); envFilePath != "" {
@@ -87,7 +93,14 @@ func main() {
 		panic(err)
 	}
 
-	if err = runner.Run(context.Background()); err != nil {
-		panic(err)
+	for {
+		err = runner.Run(context.Background())
+		if !autoRestart {
+			panic(err)
+		}
+		log.Printf("Received error: %+v\n", err)
+		log.Printf("Restarting runner in %s\n", restartWait.String())
+		<-time.After(restartWait)
+		log.Println("Restarting runner...")
 	}
 }
