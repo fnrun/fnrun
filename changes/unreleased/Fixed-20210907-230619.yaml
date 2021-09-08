@@ -1,4 +1,0 @@
-kind: Fixed
-body: return error from Azure ServiceBus source when renew lock operation fails instead
-  of causing infinite loop
-time: 2021-09-07T23:06:19.763607-05:00
