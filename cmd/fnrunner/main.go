@@ -95,6 +95,7 @@ func main() {
 		panic(err)
 	}
 
+	log.Println("Running fnrun runner...")
 	for {
 		err = runner.Run(context.Background())
 		if !autoRestart {
