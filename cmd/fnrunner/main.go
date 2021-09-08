@@ -17,6 +17,7 @@ import (
 	"github.com/fnrun/fnrun/run/fn/pool"
 	"github.com/fnrun/fnrun/run/middleware/circuitbreaker"
 	"github.com/fnrun/fnrun/run/middleware/debug"
+	"github.com/fnrun/fnrun/run/middleware/healthcheck"
 	"github.com/fnrun/fnrun/run/middleware/jq"
 	"github.com/fnrun/fnrun/run/middleware/json"
 	kafkamiddleware "github.com/fnrun/fnrun/run/middleware/kafka"
@@ -58,6 +59,7 @@ func main() {
 
 	registry.RegisterMiddleware("fnrun.middleware/circuitbreaker", circuitbreaker.New)
 	registry.RegisterMiddleware("fnrun.middleware/debug", debug.New)
+	registry.RegisterMiddleware("fnrun.middleware/healthcheck", healthcheck.New)
 	registry.RegisterMiddleware("fnrun.middleware/jq", jq.New)
 	registry.RegisterMiddleware("fnrun.middleware/json", json.New)
 	registry.RegisterMiddleware("fnrun.middleware/kafka", kafkamiddleware.New)
