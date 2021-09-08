@@ -86,11 +86,11 @@ func (q *queueSource) serveQueue(ctx context.Context, queue *servicebus.Queue, f
 			if err != nil {
 				log.Printf("Abandoning due to error: %+v\n", err)
 				if err = msg.Abandon(newCtx); err != nil {
-					log.Printf("Error abandoning message: %+v\n", err)
+					return err
 				}
 			} else {
 				if err = msg.Complete(newCtx); err != nil {
-					log.Printf("Error completing message: %+v\n", err)
+					return err
 				}
 			}
 
