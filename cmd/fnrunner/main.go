@@ -24,6 +24,7 @@ import (
 	"github.com/fnrun/fnrun/run/middleware/key"
 	"github.com/fnrun/fnrun/run/middleware/pipeline"
 	"github.com/fnrun/fnrun/run/middleware/ratelimiter"
+	"github.com/fnrun/fnrun/run/middleware/tap"
 	"github.com/fnrun/fnrun/run/middleware/timeout"
 	"github.com/fnrun/fnrun/run/runner"
 	"github.com/fnrun/fnrun/run/source/azure/servicebus"
@@ -65,6 +66,7 @@ func main() {
 	registry.RegisterMiddleware("fnrun.middleware/kafka", kafkamiddleware.New)
 	registry.RegisterMiddleware("fnrun.middleware/key", key.New)
 	registry.RegisterMiddleware("fnrun.middleware/ratelimiter", ratelimiter.New)
+	registry.RegisterMiddleware("fnrun.middleware/tap", tap.New)
 	registry.RegisterMiddleware("fnrun.middleware/timeout", timeout.New)
 	registry.RegisterMiddlewareWithRegistry("middleware", pipeline.NewWithRegistry)
 
