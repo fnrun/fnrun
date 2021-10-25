@@ -2,8 +2,8 @@ github.com/Azure/azure-amqp-common-go/v3 v3.2.1 h1:uQyDk81yn5hTP1pW4Za+zHzy97/f4
 github.com/Azure/azure-amqp-common-go/v3 v3.2.1/go.mod h1:O6X1iYHP7s2x7NjUKsXVhkwWrQhxrd+d8/3rRadj4CI=
 github.com/Azure/azure-sdk-for-go v51.1.0+incompatible h1:7uk6GWtUqKg6weLv2dbKnzwb0ml1Qn70AdtRccZ543w=
 github.com/Azure/azure-sdk-for-go v51.1.0+incompatible/go.mod h1:9XXNKU+eRnpl9moKnB4QOLf1HestfXbmab5FXxiDBjc=
-github.com/Azure/azure-service-bus-go v0.11.2 h1:gY+2M049qVT0R4Yu5abRwc4waWJGjj0S2UMFrquI0I0=
-github.com/Azure/azure-service-bus-go v0.11.2/go.mod h1:w3x9QvBO+zTa1cPtuHQ2mvcqXTCWIx8gsM2zh/z0upY=
+github.com/Azure/azure-service-bus-go v0.11.3 h1:uTWCgbLZo25BA1ZZKEUc78D2zVas4P77W8IuAru1ZJQ=
+github.com/Azure/azure-service-bus-go v0.11.3/go.mod h1:w3x9QvBO+zTa1cPtuHQ2mvcqXTCWIx8gsM2zh/z0upY=
 github.com/Azure/go-amqp v0.16.0 h1:6mhxUxaKLjMtHlGqzeih/LKqjUPLZxbM6zwfz5/C4NQ=
 github.com/Azure/go-amqp v0.16.0/go.mod h1:9YJ3RhxRT1gquYnzpZO1vcYMMpAdJT+QEg6fwmw9Zlg=
 github.com/Azure/go-autorest v14.2.0+incompatible h1:V5VMDjClD3GiElqLWO7mz2MxNAK/vTfRHdAubSIPRgs=
