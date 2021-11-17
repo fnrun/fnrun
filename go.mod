@@ -9,7 +9,7 @@ require (
 	github.com/Shopify/sarama v1.30.0
 	github.com/aws/aws-sdk-go-v2 v1.11.0
 	github.com/aws/aws-sdk-go-v2/config v1.10.1
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.11.0
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.12.0
 	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
 	github.com/itchyny/gojq v0.12.5
 	github.com/mitchellh/mapstructure v1.4.2
