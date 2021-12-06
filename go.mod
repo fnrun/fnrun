@@ -11,7 +11,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.11.0
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.13.1
 	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
-	github.com/itchyny/gojq v0.12.5
+	github.com/itchyny/go-flags v1.5.0 // indirect
+	github.com/itchyny/gojq v0.12.6
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/pkg/errors v0.9.1
 	github.com/robfig/cron/v3 v3.0.1
