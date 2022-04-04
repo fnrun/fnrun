@@ -205,6 +205,14 @@ func (cg *testConsumerGroupHandler) Close() error {
 	return nil
 }
 
+func (cg *testConsumerGroupHandler) Pause(partitions map[string][]int32) {}
+
+func (cg *testConsumerGroupHandler) PauseAll() {}
+
+func (cg *testConsumerGroupHandler) Resume(partitions map[string][]int32) {}
+
+func (cg *testConsumerGroupHandler) ResumeAll() {}
+
 func newTestConsumerGroupHandler() *testConsumerGroupHandler {
 	return &testConsumerGroupHandler{
 		InputCh: make(chan *sarama.ConsumerMessage, 10),
