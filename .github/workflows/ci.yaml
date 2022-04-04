@@ -11,32 +11,32 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
-        go: [ '1.16', '1.17' ]
+        go: ["1.17", "1.18"]
     name: Test with Go ${{ matrix.go }} on ${{ matrix.os }}
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ matrix.go }}
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Test
-      run: go test -v -race -timeout 5s ./...
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Test
+        run: go test -v -race -timeout 5s ./...
 
   coverage:
     runs-on: ubuntu-latest
     needs: [test]
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.17.x
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Test
-      run: go test -cover -coverprofile=coverage.out ./...
-    - name: Upload Coverage report to CodeCov
-      uses: codecov/codecov-action@v1
-      with:
-        file: ./coverage.out
-        fail_ci_if_error: true
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18.x
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Test
+        run: go test -cover -coverprofile=coverage.out ./...
+      - name: Upload Coverage report to CodeCov
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.out
+          fail_ci_if_error: true
