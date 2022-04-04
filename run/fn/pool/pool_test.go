@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"testing"
 	"time"
 
@@ -57,18 +58,23 @@ func TestNew_withTimeout(t *testing.T) {
 	defer cancel()
 
 	p := newPool(t, "sleepy")
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
 
 	go func() {
+		wg.Done()
 		p.Invoke(ctx, "first input")
 	}()
 
 	go func() {
+		wg.Done()
 		p.Invoke(ctx, "second input")
 	}()
 
 	// The following is cheating a little, but it is to get around a race
 	// race condition with the kicking off of the go routines above.
-	<-time.After(5 * time.Millisecond)
+	wg.Wait()
+	<-time.After(1 * time.Millisecond)
 
 	// pool should be tapped now because the "sleepy" Fn sleeps for a second
 	// before responding
