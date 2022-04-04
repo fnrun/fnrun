@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-service-bus-go v0.11.5
 	github.com/Azure/go-autorest/autorest v0.11.22 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.17 // indirect
-	github.com/Shopify/sarama v1.31.0
+	github.com/Shopify/sarama v1.32.0
 	github.com/aws/aws-sdk-go-v2 v1.16.2
 	github.com/aws/aws-sdk-go-v2/config v1.15.3
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.18.3
@@ -18,7 +18,5 @@ require (
 	github.com/sony/gobreaker v0.5.0
 	github.com/tessellator/executil v0.1.0
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
