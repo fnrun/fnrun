@@ -3,10 +3,10 @@ name: Release
 on:
   push:
     tags:
-      - '*'
+      - "*"
   workflow_run:
     workflows: ["Create tag"]
-    types: 
+    types:
       - completed
 
 permissions:
@@ -24,11 +24,11 @@ jobs:
       - name: Set up release environment
         run: |-
           echo 'GITHUB_TOKEN=${{secrets.GITHUB_TOKEN}}' > .release-env
-      
+
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: 1.18
 
       - name: Get the version for tag event
         if: ${{ contains(github.ref, 'refs/tags') }}
@@ -54,5 +54,5 @@ jobs:
             -v `pwd`:/go/src/github.com/fnrun/fnrun \
             -v `pwd`/sysroot:/sysroot \
             -w /go/src/github.com/fnrun/fnrun \
-            troian/golang-cross:v1.16.3 \
+            goreleaser/goreleaser-cross:v1.18.0 \
             release --rm-dist --release-notes="changes/${{ steps.get_version.outputs.VERSION }}.md"
