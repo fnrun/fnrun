@@ -7,7 +7,7 @@ require (
 	github.com/Shopify/sarama v1.33.0
 	github.com/aws/aws-sdk-go-v2 v1.16.4
 	github.com/aws/aws-sdk-go-v2/config v1.15.7
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.18.4
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.18.5
 	github.com/itchyny/gojq v0.12.7
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
