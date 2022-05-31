@@ -15,7 +15,7 @@ require (
 	github.com/sony/gobreaker v0.5.0
 	github.com/tessellator/executil v0.1.0
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
