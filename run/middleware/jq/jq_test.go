@@ -44,7 +44,7 @@ func TestConfigureMap_invalidInputConfiguration(t *testing.T) {
 		t.Error("expected config.Configure to return an error but it did not")
 	}
 
-	want := "invalid input configuration: unexpected token <EOF>"
+	want := "invalid input configuration: unexpected EOF"
 	got := err.Error()
 
 	if got != want {
@@ -59,7 +59,7 @@ func TestConfigureMap_invalidOutputConfiguration(t *testing.T) {
 		t.Error("expected config.Configure to return an error but it did not")
 	}
 
-	want := "invalid output configuration: unexpected token <EOF>"
+	want := "invalid output configuration: unexpected EOF"
 	got := err.Error()
 
 	if got != want {
