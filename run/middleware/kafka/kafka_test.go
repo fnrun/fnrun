@@ -189,3 +189,31 @@ func (sp *failOnSendSyncProducer) SendMessages(msg []*sarama.ProducerMessage) er
 func (sp *failOnSendSyncProducer) Close() error {
 	return nil
 }
+
+func (sp *failOnSendSyncProducer) AbortTxn() error {
+	return nil
+}
+
+func (sp *failOnSendSyncProducer) AddMessageToTxn(msg *sarama.ConsumerMessage, groupId string, metadata *string) error {
+	return nil
+}
+
+func (sp *failOnSendSyncProducer) AddOffsetsToTxn(offsets map[string][]*sarama.PartitionOffsetMetadata, groupId string) error {
+	return nil
+}
+
+func (sp *failOnSendSyncProducer) BeginTxn() error {
+	return nil
+}
+
+func (sp *failOnSendSyncProducer) CommitTxn() error {
+	return nil
+}
+
+func (sp *failOnSendSyncProducer) IsTransactional() bool {
+	return false
+}
+
+func (sp *failOnSendSyncProducer) TxnStatus() sarama.ProducerTxnStatusFlag {
+	return sarama.ProducerTxnFlagReady
+}
