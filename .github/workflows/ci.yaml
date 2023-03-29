@@ -15,11 +15,11 @@ jobs:
     name: Test with Go ${{ matrix.go }} on ${{ matrix.os }}
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Test
         run: go test -v -race -timeout 5s ./...
 
@@ -28,15 +28,15 @@ jobs:
     needs: [test]
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: 1.20.x
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Test
         run: go test -cover -coverprofile=coverage.out ./...
       - name: Upload Coverage report to CodeCov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           file: ./coverage.out
           fail_ci_if_error: true
