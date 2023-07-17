@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/Azure/azure-service-bus-go v0.11.5
 	github.com/Shopify/sarama v1.38.1
-	github.com/aws/aws-sdk-go-v2 v1.18.0
+	github.com/aws/aws-sdk-go-v2 v1.19.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.25
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.22.0
 	github.com/itchyny/gojq v0.12.12
