@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-service-bus-go v0.11.5
 	github.com/Shopify/sarama v1.38.1
 	github.com/aws/aws-sdk-go-v2 v1.21.2
-	github.com/aws/aws-sdk-go-v2/config v1.19.0
+	github.com/aws/aws-sdk-go-v2/config v1.19.1
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.24.7
 	github.com/itchyny/gojq v0.12.13
 	github.com/mitchellh/mapstructure v1.5.0
