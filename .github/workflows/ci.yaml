@@ -13,11 +13,11 @@ jobs:
         os: [ubuntu-latest, macOS-latest, windows-latest]
     name: Test on ${{ matrix.os }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Checkout code
-        uses: actions/checkout@v4
       - name: Test
         run: go test -v -race -timeout 5s ./...
