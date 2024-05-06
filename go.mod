@@ -1,6 +1,6 @@
 module github.com/fnrun/fnrun
 
-go 1.19
+go 1.22
 
 require (
 	github.com/Azure/azure-service-bus-go v0.11.5

@@ -11,18 +11,13 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
-        go: ["1.19", "1.20"]
-    name: Test with Go ${{ matrix.go }} on ${{ matrix.os }}
+    name: Test on ${{ matrix.os }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
-          cache: true
-          cache-dependency-path: |
-            **/go.sum
-            **/go.mod
-      - name: Checkout code
-        uses: actions/checkout@v4
+          go-version-file: go.mod
       - name: Test
         run: go test -v -race -timeout 5s ./...
