@@ -1,3 +1,6 @@
+**Note:** This software is complete. It has achieved everything I wanted, and it has been running in production without updates for years. I have decided to archive this project and let the domain go.
+
+<br />
 <p align="center">
   <a href="https://fnrun.dev/" target="_blank" rel="noopener noreferrer">
     <img src="https://fnrun.dev/fnrun.png" width="400">
